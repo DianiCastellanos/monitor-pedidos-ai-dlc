@@ -1,0 +1,109 @@
+@page "/incidents/weekly"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IIncidentService IncidentService
+
+<PageTitle>Resumen Semanal de Incidentes</PageTitle>
+
+<h2 class="mb-3">Resumen Semanal</h2>
+
+<div class="d-flex align-items-center gap-3 mb-3">
+    <button class="btn btn-outline-secondary btn-sm" @onclick="PrevWeek">← Semana anterior</button>
+    <strong>@WeekLabel</strong>
+    <button class="btn btn-outline-secondary btn-sm"
+            disabled="@(_weekStart >= CurrentMonday)"
+            @onclick="NextWeek">Semana siguiente →</button>
+</div>
+
+@if (_loading)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (_entries is null || _entries.Count == 0)
+{
+    <div class="alert alert-info">No hay incidentes en esta semana.</div>
+}
+else
+{
+    <table class="table table-hover table-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Causa</th>
+                <th>Severidad</th>
+                <th>Incidentes</th>
+                <th>Candidatos a regla nueva</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in _entries)
+            {
+                <tr>
+                    <td>@e.Cause</td>
+                    <td><span class="badge @SeverityBadge(e.Severity)">@e.Severity</span></td>
+                    <td>@e.Count</td>
+                    <td>
+                        @if (e.CandidatosReglaNueva > 0)
+                        {
+                            <span class="badge bg-warning text-dark">@e.CandidatosReglaNueva</span>
+                        }
+                        else
+                        {
+                            <span>0</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+        <tfoot class="fw-bold">
+            <tr>
+                <td colspan="2">Total</td>
+                <td>@_entries.Sum(e => e.Count)</td>
+                <td>@_entries.Sum(e => e.CandidatosReglaNueva)</td>
+            </tr>
+        </tfoot>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<WeeklySummaryEntry>? _entries;
+    private bool     _loading    = true;
+    private DateOnly _weekStart;
+
+    private static DateOnly CurrentMonday =>
+        DateOnly.FromDateTime(DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek == 0 ? 6 : (int)DateTime.Today.DayOfWeek - 1));
+
+    private string WeekLabel =>
+        $"Semana del {_weekStart:dd MMM yyyy} al {_weekStart.AddDays(6):dd MMM yyyy}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _weekStart = CurrentMonday;
+        await LoadAsync();
+    }
+
+    private async Task PrevWeek()
+    {
+        _weekStart = _weekStart.AddDays(-7);
+        await LoadAsync();
+    }
+
+    private async Task NextWeek()
+    {
+        _weekStart = _weekStart.AddDays(7);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+        _entries = await IncidentService.GetWeeklySummaryAsync(_weekStart);
+        _loading = false;
+    }
+
+    private static string SeverityBadge(Severity s) => s switch
+    {
+        Severity.Critical => "bg-danger",
+        Severity.Warn     => "bg-warning text-dark",
+        _                 => "bg-secondary"
+    };
+}

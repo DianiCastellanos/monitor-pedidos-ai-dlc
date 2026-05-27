@@ -5,5 +5,5 @@ namespace MonitorPedidos.Domain.Monitoring;
 public interface ICheckExecutor
 {
     ModuleId Module { get; }
-    Task<CheckResult> CheckAsync(CancellationToken ct = default);
+    Task<CheckResult> ExecuteAsync(CancellationToken ct = default);
 }

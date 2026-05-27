@@ -11,5 +11,6 @@ public enum ModuleId
     Dashboard       = 8,
     IncidentManager = 9,
     AlertRenderer   = 10,
-    JobsMonitor     = 11
+    JobsMonitor     = 11,
+    BrandMonitor    = 12
 }

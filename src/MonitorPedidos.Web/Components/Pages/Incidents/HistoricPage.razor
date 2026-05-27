@@ -1,0 +1,167 @@
+@page "/incidents"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IIncidentService IncidentService
+@inject NavigationManager Nav
+
+<PageTitle>Histórico de Incidentes</PageTitle>
+
+<h2 class="mb-3">Histórico de Incidentes</h2>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Desde</label>
+                <input type="date" class="form-control" @bind="_filterFrom" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Hasta</label>
+                <input type="date" class="form-control" @bind="_filterTo" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Severidad</label>
+                <select class="form-select" @bind="_filterSeverity">
+                    <option value="">Todas</option>
+                    <option value="Info">Info</option>
+                    <option value="Warn">Advertencia</option>
+                    <option value="Critical">Crítico</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Módulo</label>
+                <select class="form-select" @bind="_filterModule">
+                    <option value="">Todos</option>
+                    @foreach (var m in Enum.GetValues<ModuleId>())
+                    {
+                        <option value="@m">@m</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-primary" @onclick="OnSearchAsync">Buscar</button>
+                <button class="btn btn-outline-secondary" @onclick="OnClearAsync">Limpiar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (_result is null || _result.TotalCount == 0)
+{
+    <div class="alert alert-info">No hay incidentes que coincidan con los filtros.</div>
+}
+else
+{
+    <p class="text-muted">Total: @_result.TotalCount incidentes</p>
+    <table class="table table-hover table-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Módulo</th>
+                <th>Causa</th>
+                <th>Severidad</th>
+                <th>Abierto</th>
+                <th>Cerrado</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var inc in _result.Items)
+            {
+                <tr>
+                    <td>@inc.Module</td>
+                    <td>@inc.Cause</td>
+                    <td>
+                        <span class="badge @SeverityBadge(inc.Severity)">@inc.Severity</span>
+                    </td>
+                    <td>@inc.OpenedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@(inc.ClosedAt.HasValue ? inc.ClosedAt.Value.LocalDateTime.ToString("yyyy-MM-dd HH:mm") : "—")</td>
+                    <td>
+                        @if (inc.IsOpen)
+                        {
+                            <span class="badge bg-danger">Abierto</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Cerrado</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary"
+                                @onclick="() => GoToDetail(inc.Id)">
+                            Ver
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-between align-items-center mt-2">
+        <button class="btn btn-outline-secondary btn-sm"
+                disabled="@(_skip == 0)"
+                @onclick="OnPrevAsync">← Anterior</button>
+        <span class="text-muted small">
+            Mostrando @(_skip + 1)–@(_skip + _result.Items.Count) de @_result.TotalCount
+        </span>
+        <button class="btn btn-outline-secondary btn-sm"
+                disabled="@(!_result.HasMore)"
+                @onclick="OnNextAsync">Siguiente →</button>
+    </div>
+}
+
+@code {
+    private PagedResult<Incident>? _result;
+    private bool      _loading       = true;
+    private int       _skip          = 0;
+    private const int PageSize       = 20;
+
+    private DateTime? _filterFrom;
+    private DateTime? _filterTo;
+    private string?   _filterSeverity;
+    private string?   _filterModule;
+
+    protected override async Task OnInitializedAsync() => await SearchAsync();
+
+    private async Task OnSearchAsync() { _skip = 0; await SearchAsync(); }
+
+    private async Task OnClearAsync()
+    {
+        _filterFrom = _filterTo = null;
+        _filterSeverity = _filterModule = null;
+        _skip = 0;
+        await SearchAsync();
+    }
+
+    private async Task OnPrevAsync() { _skip = Math.Max(0, _skip - PageSize); await SearchAsync(); }
+    private async Task OnNextAsync() { _skip += PageSize; await SearchAsync(); }
+
+    private void GoToDetail(Guid id) => Nav.NavigateTo("/incidents/" + id);
+
+    private async Task SearchAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        DateTimeOffset? from = _filterFrom.HasValue
+            ? new DateTimeOffset(_filterFrom.Value, TimeSpan.Zero) : null;
+        DateTimeOffset? to = _filterTo.HasValue
+            ? new DateTimeOffset(_filterTo.Value.AddDays(1).AddTicks(-1), TimeSpan.Zero) : null;
+        Severity? severity = Enum.TryParse<Severity>(_filterSeverity, out var sv) ? sv : null;
+        ModuleId? module   = Enum.TryParse<ModuleId>(_filterModule, out var md) ? md : null;
+
+        var filter = new IncidentSearchFilter(from, to, severity, module, _skip, PageSize);
+        _result  = await IncidentService.SearchHistoryAsync(filter);
+        _loading = false;
+    }
+
+    private static string SeverityBadge(Severity s) => s switch
+    {
+        Severity.Critical => "bg-danger",
+        Severity.Warn     => "bg-warning text-dark",
+        _                 => "bg-secondary"
+    };
+}

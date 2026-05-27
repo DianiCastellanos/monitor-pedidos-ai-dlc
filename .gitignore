@@ -11,6 +11,11 @@ obj/
 secrets.json
 appsettings.secrets.json
 
+# Environment variables / local secrets (NEVER commit)
+.env
+.env.local
+.env.*.local
+
 # Entity Framework migrations (keep source, ignore snapshots if needed)
 # Uncomment if you want to ignore EF migrations:
 # Migrations/

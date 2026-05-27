@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{9F6AD536
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitorPedidos.IntegrationTests", "tests\MonitorPedidos.IntegrationTests\MonitorPedidos.IntegrationTests.csproj", "{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitorPedidos.UnitTests", "tests\MonitorPedidos.UnitTests\MonitorPedidos.UnitTests.csproj", "{5F86436A-D818-47B8-9EC3-1E10DEB1C33E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,11 +42,16 @@ Global
 		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F86436A-D818-47B8-9EC3-1E10DEB1C33E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F86436A-D818-47B8-9EC3-1E10DEB1C33E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F86436A-D818-47B8-9EC3-1E10DEB1C33E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F86436A-D818-47B8-9EC3-1E10DEB1C33E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{7FBE1C62-E497-4606-BDD7-94283225D6B3} = {805D8CFC-7E29-466A-9FD4-BDD2F190388A}
 		{77F38426-DD46-4895-A0A7-0D204E9402C1} = {805D8CFC-7E29-466A-9FD4-BDD2F190388A}
 		{A3F84631-D813-4709-92D8-EFAF77E6B825} = {805D8CFC-7E29-466A-9FD4-BDD2F190388A}
 		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A} = {9F6AD536-F983-4F6B-9BD6-5E48DDAFE62F}
+		{5F86436A-D818-47B8-9EC3-1E10DEB1C33E} = {9F6AD536-F983-4F6B-9BD6-5E48DDAFE62F}
 	EndGlobalSection
 EndGlobal

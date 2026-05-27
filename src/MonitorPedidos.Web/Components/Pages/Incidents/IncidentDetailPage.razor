@@ -1,0 +1,180 @@
+@page "/incidents/{Id:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IIncidentService IncidentService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Detalle de Incidente</PageTitle>
+
+@if (_loading)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (_incident is null)
+{
+    <div class="alert alert-danger">Incidente no encontrado.</div>
+    <a href="/incidents" class="btn btn-secondary btn-sm">← Volver al histórico</a>
+}
+else
+{
+    <div class="mb-2">
+        <a href="/incidents" class="text-decoration-none">← Volver al histórico</a>
+    </div>
+
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <h2 class="mb-0">Incidente @_incident.Id.ToString()[..8]…</h2>
+        @if (_incident.IsOpen)
+        {
+            <span class="badge bg-danger fs-6">ABIERTO</span>
+        }
+        else
+        {
+            <span class="badge bg-success fs-6">CERRADO</span>
+        }
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">Datos del incidente</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Módulo</dt>
+                        <dd class="col-sm-8">@_incident.Module</dd>
+                        <dt class="col-sm-4">Causa</dt>
+                        <dd class="col-sm-8">@_incident.Cause</dd>
+                        <dt class="col-sm-4">Severidad</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge @SeverityBadge(_incident.Severity)">@_incident.Severity</span>
+                        </dd>
+                        <dt class="col-sm-4">Abierto</dt>
+                        <dd class="col-sm-8">@_incident.OpenedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+                        @if (_incident.IsCandidatoReglaNueva)
+                        {
+                            <dt class="col-sm-4"></dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-warning text-dark">Candidato a regla nueva</span>
+                            </dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">Detalle de la alerta</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Qué pasó</dt>
+                        <dd class="col-sm-8">@_incident.Alert.QuePaso</dd>
+                        <dt class="col-sm-4">Cuándo</dt>
+                        <dd class="col-sm-8">@_incident.Alert.Cuando.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+                        <dt class="col-sm-4">Dónde</dt>
+                        <dd class="col-sm-8">@_incident.Alert.Donde</dd>
+                        <dt class="col-sm-4">Causa probable</dt>
+                        <dd class="col-sm-8">@_incident.Alert.CausaProbable</dd>
+                        <dt class="col-sm-4">Acción sugerida</dt>
+                        <dd class="col-sm-8">@_incident.Alert.AccionSugerida</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_incident.IsClosed)
+    {
+        <div class="card border-success mb-3">
+            <div class="card-header text-bg-success">Cierre del incidente</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Cerrado</dt>
+                    <dd class="col-sm-9">@_incident.ClosedAt!.Value.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+                    <dt class="col-sm-3">Tipo de cierre</dt>
+                    <dd class="col-sm-9">@_incident.CloseType</dd>
+                    @if (_incident.CloseType == IncidentCloseType.Manual)
+                    {
+                        <dt class="col-sm-3">Cerrado por</dt>
+                        <dd class="col-sm-9">@_incident.ClosedByRole</dd>
+                        <dt class="col-sm-3">Comentario</dt>
+                        <dd class="col-sm-9">@_incident.ComentarioResolucion</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    }
+
+    @if (_incident.IsOpen)
+    {
+        <div class="card border-warning mb-3">
+            <div class="card-header">Cerrar manualmente</div>
+            <div class="card-body">
+                @if (_errorMessage is not null)
+                {
+                    <div class="alert alert-danger py-2">@_errorMessage</div>
+                }
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        Comentario de resolución <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" rows="3"
+                              placeholder="Describa la causa y la acción tomada..."
+                              @bind="_comentario"></textarea>
+                </div>
+                <button class="btn btn-warning" @onclick="OnCloseAsync" disabled="@_closing">
+                    @(_closing ? "Cerrando..." : "Cerrar incidente")
+                </button>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private Incident? _incident;
+    private bool      _loading  = true;
+    private bool      _closing  = false;
+    private string?   _errorMessage;
+    private string    _comentario = string.Empty;
+    private string    _userRole   = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userRole = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                    ?? "Operador";
+
+        _incident = await IncidentService.GetByIdAsync(Id);
+        _loading  = false;
+    }
+
+    private async Task OnCloseAsync()
+    {
+        _errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_comentario))
+        {
+            _errorMessage = "El comentario de resolución es obligatorio.";
+            return;
+        }
+
+        _closing = true;
+        try
+        {
+            await IncidentService.CloseManuallyAsync(Id, _userRole, _comentario);
+            Nav.NavigateTo("/incidents");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            _closing = false;
+        }
+    }
+
+    private static string SeverityBadge(Severity s) => s switch
+    {
+        Severity.Critical => "bg-danger",
+        Severity.Warn     => "bg-warning text-dark",
+        _                 => "bg-secondary"
+    };
+}
