@@ -1,0 +1,54 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.nupkg
+*.snupkg
+
+# ASP.NET Core User Secrets (NEVER commit)
+secrets.json
+appsettings.secrets.json
+
+# Entity Framework migrations (keep source, ignore snapshots if needed)
+# Uncomment if you want to ignore EF migrations:
+# Migrations/
+
+# Logs (generated at runtime)
+logs/
+*.log
+log-*.txt
+log-*.json
+
+# SQL Server LocalDB files (generated at runtime)
+*.mdf
+*.ldf
+
+# Build output
+publish/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+*.swo
+.vscode/settings.json
+.vscode/launch.json
+
+# Node (si se usa npm para assets)
+node_modules/
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+
+# Temp
+*.tmp
+*.bak
