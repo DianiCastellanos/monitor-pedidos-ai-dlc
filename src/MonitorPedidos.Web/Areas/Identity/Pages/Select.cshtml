@@ -1,0 +1,43 @@
+@page
+@model MonitorPedidos.Web.Areas.Identity.Pages.SelectModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seleccionar Identidad — MonitorPedidos</title>
+    <link rel="stylesheet" href="~/bootstrap/bootstrap.min.css" />
+    <style>
+        body { background: #0D1117; color: #E2E8F0; display: flex; min-height: 100vh; align-items: center; justify-content: center; }
+        .card { background: #161C2D; border: 1px solid #1E293B; border-radius: 12px; padding: 2rem; }
+        .btn-identity { background: #2563EB; border: none; border-radius: 8px; color: #fff; padding: 1rem 2rem; font-size: 1rem; cursor: pointer; transition: background 0.15s; }
+        .btn-identity:hover { background: #1D4ED8; }
+        h1 { font-size: 1.25rem; color: #94A3B8; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.75rem; font-weight: 700; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="card" style="max-width:520px;width:100%">
+        <h1>Monitor de Pedidos — Manufacturas Eliot</h1>
+        <h2>Seleccione su identidad</h2>
+        <p style="color:#94A3B8;margin-bottom:2rem">Para continuar al dashboard, elija su rol de acceso.</p>
+        <div class="d-flex gap-3 flex-wrap">
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="identity" value="Operador" />
+                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                <button type="submit" class="btn-identity">Analista Operativo</button>
+            </form>
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="identity" value="Tecnico" />
+                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                <button type="submit" class="btn-identity">Responsable Técnico</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthStateProvider
+@using System.Security.Claims
+@using MonitorPedidos.Domain.Identity
+
+<div class="app-shell">
+    <header class="app-header">
+        <span class="app-brand">MonitorPedidos</span>
+        <div class="app-header-right">
+            <span class="app-user">@DisplayName</span>
+            <form method="post" action="/Identity/Logout" style="display:inline">
+                <button type="submit" class="btn-logout">Salir</button>
+            </form>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <nav class="app-nav">
+            <a href="/dashboard" class="nav-item">Dashboard</a>
+            <a href="/history" class="nav-item">Historial</a>
+            <a href="/summary" class="nav-item">Resumen Semanal</a>
+            <a href="/discrepancies" class="nav-item">Discrepancias</a>
+            <a href="/brand-monitor" class="nav-item">Brand Monitor</a>
+            @if (IsTecnico)
+            {
+                <a href="/rules" class="nav-item">Reglas</a>
+                <a href="/logs" class="nav-item">Logs Técnicos</a>
+                <a href="/simulation" class="nav-item">Simulación (Dev)</a>
+            }
+            <a href="/noc" class="nav-item">Modo NOC</a>
+        </nav>
+
+        <main class="app-content">
+            @Body
+        </main>
+    </div>
+</div>
+
+@code {
+    private string DisplayName { get; set; } = string.Empty;
+    private bool IsTecnico { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        DisplayName = user.FindFirst(ClaimTypes.Name)?.Value ?? "Usuario";
+        IsTecnico = user.IsInRole(ApplicationRole.Names.Tecnico);
+    }
+}

@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{805D8CFC-7E29-466A-9FD4-BDD2F190388A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitorPedidos.Domain", "src\MonitorPedidos.Domain\MonitorPedidos.Domain.csproj", "{7FBE1C62-E497-4606-BDD7-94283225D6B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitorPedidos.Infrastructure", "src\MonitorPedidos.Infrastructure\MonitorPedidos.Infrastructure.csproj", "{77F38426-DD46-4895-A0A7-0D204E9402C1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitorPedidos.Web", "src\MonitorPedidos.Web\MonitorPedidos.Web.csproj", "{A3F84631-D813-4709-92D8-EFAF77E6B825}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{9F6AD536-F983-4F6B-9BD6-5E48DDAFE62F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitorPedidos.IntegrationTests", "tests\MonitorPedidos.IntegrationTests\MonitorPedidos.IntegrationTests.csproj", "{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7FBE1C62-E497-4606-BDD7-94283225D6B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FBE1C62-E497-4606-BDD7-94283225D6B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FBE1C62-E497-4606-BDD7-94283225D6B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FBE1C62-E497-4606-BDD7-94283225D6B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77F38426-DD46-4895-A0A7-0D204E9402C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77F38426-DD46-4895-A0A7-0D204E9402C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77F38426-DD46-4895-A0A7-0D204E9402C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77F38426-DD46-4895-A0A7-0D204E9402C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3F84631-D813-4709-92D8-EFAF77E6B825}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3F84631-D813-4709-92D8-EFAF77E6B825}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3F84631-D813-4709-92D8-EFAF77E6B825}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3F84631-D813-4709-92D8-EFAF77E6B825}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7FBE1C62-E497-4606-BDD7-94283225D6B3} = {805D8CFC-7E29-466A-9FD4-BDD2F190388A}
+		{77F38426-DD46-4895-A0A7-0D204E9402C1} = {805D8CFC-7E29-466A-9FD4-BDD2F190388A}
+		{A3F84631-D813-4709-92D8-EFAF77E6B825} = {805D8CFC-7E29-466A-9FD4-BDD2F190388A}
+		{C0EF35D5-C82A-4A1C-AA83-4A197F3C705A} = {9F6AD536-F983-4F6B-9BD6-5E48DDAFE62F}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,24 @@
+@page
+@model MonitorPedidos.Web.Areas.Identity.Pages.AccessDeniedModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Acceso Restringido — MonitorPedidos</title>
+    <link rel="stylesheet" href="~/bootstrap/bootstrap.min.css" />
+    <style>
+        body { background:#0D1117; color:#E2E8F0; display:flex; min-height:100vh; align-items:center; justify-content:center; }
+        .card { background:#161C2D; border:1px solid #1E293B; border-radius:12px; padding:2rem; max-width:420px; }
+    </style>
+</head>
+<body>
+    <div class="card text-center">
+        <h2 style="color:#DC2626">Acceso restringido</h2>
+        <p style="color:#94A3B8;margin:1rem 0">No tienes permisos para acceder a esta sección.</p>
+        <a href="/dashboard" style="color:#2563EB">Volver al dashboard</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,9 @@
+@page "/"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject NavigationManager Nav
+
+<PageTitle>MonitorPedidos</PageTitle>
+
+@code {
+    protected override void OnInitialized() => Nav.NavigateTo("/dashboard");
+}
