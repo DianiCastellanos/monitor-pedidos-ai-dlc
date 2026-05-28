@@ -16,6 +16,9 @@ appsettings.secrets.json
 .env.local
 .env.*.local
 
+# ASP.NET Core Data Protection keys (generated at runtime, machine-specific)
+**/keys/*.xml
+
 # Entity Framework migrations (keep source, ignore snapshots if needed)
 # Uncomment if you want to ignore EF migrations:
 # Migrations/

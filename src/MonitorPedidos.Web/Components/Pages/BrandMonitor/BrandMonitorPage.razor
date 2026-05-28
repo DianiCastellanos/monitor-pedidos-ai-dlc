@@ -1,0 +1,93 @@
+@page "/brand-monitor"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
+@inject IBrandMonitorService BrandMonitorService
+
+<PageTitle>Brand Monitor — MonitorPedidos</PageTitle>
+
+<h2 class="mb-1">Brand Monitor</h2>
+<p class="text-muted small mb-3">Pedidos pendientes por marca. Actualiza cada 10 minutos.</p>
+
+@if (_loading)
+{
+    <p>Cargando...</p>
+}
+else if (!_snapshots.Any())
+{
+    <p class="text-muted">Sin datos de Brand Monitor aún. Espere el primer tick del scheduler.</p>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Marca</th>
+                <th class="text-center">Pendientes actuales</th>
+                <th class="text-center">Hace 10 min</th>
+                <th class="text-center">Cambio</th>
+                <th class="text-center">Estado</th>
+                <th class="text-muted small">Actualizado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in _snapshots)
+            {
+                var drop  = s.PendingCountPrevious - s.PendingCountCurrent;
+                var color = StatusBadgeClass(s.Status);
+                <tr>
+                    <td><strong>@s.Site</strong></td>
+                    <td class="text-center">@(s.PendingCountCurrent < 0 ? "N/D" : s.PendingCountCurrent.ToString())</td>
+                    <td class="text-center">@s.PendingCountPrevious</td>
+                    <td class="text-center">
+                        @if (s.PendingCountCurrent >= 0)
+                        {
+                            <span class="@(drop > 0 ? "text-success" : drop < 0 ? "text-danger" : "text-muted")">
+                                @(drop > 0 ? $"▼ {drop}" : drop < 0 ? $"▲ {-drop}" : "—")
+                            </span>
+                        }
+                        else { <span class="text-muted">—</span> }
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-@color fs-6">@StatusEmoji(s.Status)</span>
+                    </td>
+                    <td class="text-muted small">@s.CheckedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<button class="btn btn-outline-secondary btn-sm" @onclick="RefreshAsync">↻ Actualizar</button>
+
+@code {
+    private IReadOnlyList<BrandSnapshot> _snapshots = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        _loading   = true;
+        _snapshots = await BrandMonitorService.GetCurrentSnapshotsAsync();
+        _loading   = false;
+    }
+
+    private static string StatusBadgeClass(SnapshotStatus s) => s switch
+    {
+        SnapshotStatus.Green  => "success",
+        SnapshotStatus.Yellow => "warning text-dark",
+        SnapshotStatus.Red    => "danger",
+        _                     => "secondary"
+    };
+
+    private static string StatusEmoji(SnapshotStatus s) => s switch
+    {
+        SnapshotStatus.Green  => "🟢 OK",
+        SnapshotStatus.Yellow => "🟡 Moderado",
+        SnapshotStatus.Red    => "🔴 Crítico",
+        _                     => "—"
+    };
+}
+
+@using MonitorPedidos.Domain.Dashboard
+@using MonitorPedidos.Web.Services

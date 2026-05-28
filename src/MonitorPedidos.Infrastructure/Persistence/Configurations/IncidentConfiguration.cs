@@ -40,6 +40,11 @@ public sealed class IncidentConfiguration : IEntityTypeConfiguration<Incident>
         entity.Property(i => i.ComentarioResolucion).HasMaxLength(1000);
         entity.Property(i => i.IsCandidatoReglaNueva).IsRequired();
 
+        entity.Property(i => i.RetryMetadataJson)
+            .HasColumnName("retry_metadata")
+            .HasColumnType("text")
+            .IsRequired(false);
+
         entity.OwnsOne(i => i.Alert, alert =>
         {
             alert.Property(a => a.QuePaso)

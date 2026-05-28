@@ -51,10 +51,11 @@ public class AlertTemplateRendererTests
     [Fact]
     public void Render_UnknownCombination_ReturnsFallback()
     {
-        var alert = AlertTemplateRenderer.Render(Ctx(ModuleId.ApiChecker, CheckStatus.Critical, CauseCategory.Api));
+        // (Job, Warn) has no dedicated template → fallback
+        var alert = AlertTemplateRenderer.Render(Ctx(ModuleId.JobsMonitor, CheckStatus.Warn, CauseCategory.Job));
 
         Assert.NotNull(alert.QuePaso);
-        Assert.Equal("CRÍTICO", alert.SeveridadTexto);
+        Assert.Equal("ADVERTENCIA", alert.SeveridadTexto);
         Assert.Contains("Sin plantilla", alert.CausaProbable);
     }
 

@@ -10,11 +10,19 @@ namespace MonitorPedidos.Web.Areas.Identity.Pages;
 [Authorize]
 public class LogoutModel(ILogger<LogoutModel> logger) : PageModel
 {
+    public async Task<IActionResult> OnGetAsync()
+    {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "desconocido";
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        logger.LogInformation("sesion_cerrada | rol={Role}", role);
+        return RedirectToPage("/Select", new { area = "Identity" });
+    }
+
     public async Task<IActionResult> OnPostAsync()
     {
         var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "desconocido";
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         logger.LogInformation("sesion_cerrada | rol={Role}", role);
-        return RedirectToPage("/Identity/Select", new { area = "Identity" });
+        return RedirectToPage("/Select", new { area = "Identity" });
     }
 }

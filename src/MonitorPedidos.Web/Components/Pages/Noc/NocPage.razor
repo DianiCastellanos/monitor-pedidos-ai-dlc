@@ -1,0 +1,122 @@
+@page "/noc"
+@layout MonitorPedidos.Web.Components.Layout.NocLayout
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject AlertBroadcaster Broadcaster
+@inject IIncidentService IncidentService
+
+<h3 class="mb-3">Estado en Tiempo Real</h3>
+
+<div class="row g-3 mb-4">
+    @foreach (var domain in _domains)
+    {
+        <div class="col-md-3">
+            <div class="card border-@domain.Color h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-title">@domain.Label</h6>
+                    <span class="fs-3 badge bg-@domain.Color">@domain.StatusText</span>
+                    <p class="card-text text-muted small mt-1">@domain.Detail</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (_openIncidents.Any())
+{
+    <table class="table table-sm table-dark">
+        <thead><tr><th>Módulo</th><th>Severidad</th><th>Desde</th></tr></thead>
+        <tbody>
+            @foreach (var inc in _openIncidents)
+            {
+                <tr>
+                    <td>@inc.Module</td>
+                    <td><span class="badge bg-@SeverityColor(inc.Severity)">@inc.Severity</span></td>
+                    <td>@inc.OpenedAt.ToLocalTime().ToString("HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="alert alert-success py-2">✅ Sin incidentes activos.</div>
+}
+
+@code {
+    private List<DomainCard> _domains = BuildDefaultDomains();
+    private List<Incident>   _openIncidents = [];
+    private Func<AlertMessage, Task>? _alertHandler;
+    private Func<Guid, Task>?         _closeHandler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+
+        _alertHandler = async _ => { await RefreshAsync(); await InvokeAsync(StateHasChanged); };
+        _closeHandler = async _ => { await RefreshAsync(); await InvokeAsync(StateHasChanged); };
+        Broadcaster.OnAlert          += _alertHandler;
+        Broadcaster.OnIncidentClosed += _closeHandler;
+    }
+
+    private async Task RefreshAsync()
+    {
+        var paged = await IncidentService.SearchHistoryAsync(new IncidentSearchFilter { Take = 50 });
+        _openIncidents = paged.Items.Where(i => i.ClosedAt is null).OrderByDescending(i => i.OpenedAt).ToList();
+        foreach (var inc in _openIncidents) UpdateDomainCard(inc);
+    }
+
+    private void UpdateDomainCard(Incident inc)
+    {
+        var label = inc.Module switch
+        {
+            ModuleId.DbOrderChecker  => "BD Pedidos",
+            ModuleId.DbHealthChecker => "BD Salud",
+            ModuleId.JobsMonitor     => "Jobs",
+            ModuleId.SalesforceApi or ModuleId.MultivendeApi => "APIs Externas",
+            _ => null
+        };
+        if (label is null) return;
+        var card = _domains.FirstOrDefault(d => d.Label == label);
+        if (card is null) return;
+        card.StatusText = inc.Severity.ToString();
+        card.Color      = SeverityColor(inc.Severity);
+        card.Detail     = inc.Alert?.QuePaso ?? "";
+    }
+
+    private static string SeverityColor(Severity s) => s switch
+    {
+        Severity.Critical => "danger",
+        Severity.Warn     => "warning",
+        _                 => "success"
+    };
+
+    private static List<DomainCard> BuildDefaultDomains() =>
+    [
+        new("BD Pedidos", "OK", "success", "Sin datos"),
+        new("BD Salud",   "OK", "success", "Sin datos"),
+        new("Jobs",       "OK", "success", "Sin datos"),
+        new("APIs Externas", "OK", "success", "Sin datos"),
+    ];
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_alertHandler is not null) Broadcaster.OnAlert          -= _alertHandler;
+        if (_closeHandler is not null) Broadcaster.OnIncidentClosed -= _closeHandler;
+        await Task.CompletedTask;
+    }
+
+    private sealed class DomainCard(string label, string statusText, string color, string detail)
+    {
+        public string Label      { get; } = label;
+        public string StatusText { get; set; } = statusText;
+        public string Color      { get; set; } = color;
+        public string Detail     { get; set; } = detail;
+    }
+}
+
+@using MonitorPedidos.Domain.Alerts
+@using MonitorPedidos.Domain.Incidents
+@using MonitorPedidos.Domain.Shared
+@using MonitorPedidos.Web.Services

@@ -41,7 +41,10 @@ public sealed class MonitoringService : IMonitoringService
             return;
         }
 
-        var cause   = CauseClassifier.Classify(checker);
+        // BR-TOKEN-01: HTTP 401 → Token cause (no se reintenta)
+        var cause = result.Details.Contains("401", StringComparison.OrdinalIgnoreCase)
+            ? CauseCategory.Token
+            : CauseClassifier.Classify(checker);
         var context = new CheckContext(checker.Module, result.Status, cause,
                                        result.Details, result.CheckedAt);
         var alert    = AlertTemplateRenderer.Render(context);

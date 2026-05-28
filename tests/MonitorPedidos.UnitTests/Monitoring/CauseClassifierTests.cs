@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Configuration;
 using MonitorPedidos.Domain.Monitoring;
+using MonitorPedidos.Domain.Rules;
 using MonitorPedidos.Domain.Shared;
 using MonitorPedidos.Web.Features.Monitoring;
 using Moq;
@@ -12,7 +12,7 @@ public class CauseClassifierTests
     [Fact]
     public void Classify_DbOrderChecker_ReturnsBd()
     {
-        var checker = new DbOrderChecker(Mock.Of<IOrderSource>(), Mock.Of<IConfiguration>());
+        var checker = new DbOrderChecker(Mock.Of<IOrderSource>(), Mock.Of<IRuleRepository>());
         Assert.Equal(CauseCategory.Bd, CauseClassifier.Classify(checker));
     }
 

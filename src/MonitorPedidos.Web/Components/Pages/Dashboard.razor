@@ -1,9 +1,359 @@
 @page "/dashboard"
-@page "/noc"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject AlertBroadcaster Broadcaster
+@inject IIncidentService IncidentService
+@inject IBrandMonitorService BrandMonitorService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Dashboard — MonitorPedidos</PageTitle>
 
-<h2>Dashboard Operativo</h2>
-<p style="color:#94A3B8">El dashboard en tiempo real se implementa en U6.</p>
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h2 class="mb-0 fw-bold">Dashboard — MonitorPedidos AI</h2>
+        <p class="text-muted small mb-0">Actualización en tiempo real</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <button class="btn btn-outline-secondary btn-sm" @onclick="ManualRefreshAsync">
+            &#9889; Chequear ahora
+        </button>
+        <span class="badge fs-6 px-3 py-2 bg-@_overallColor">&#9679; @_overallText</span>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    @foreach (var d in _domains)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center py-3 px-2">
+                    <div class="text-muted mb-1" style="font-size:0.75rem;font-weight:600;letter-spacing:.05em">@d.Code</div>
+                    <div class="fw-semibold mb-2" style="font-size:0.85rem">@d.Label</div>
+                    @if (d.Color == "danger")
+                    {
+                        <div class="d-flex justify-content-center mb-2">
+                            <span class="rounded-circle bg-danger shadow-sm" style="width:2.5rem;height:2.5rem;display:inline-block"></span>
+                        </div>
+                    }
+                    else if (d.Color == "warning")
+                    {
+                        <div class="d-flex justify-content-center mb-2">
+                            <span class="rounded-circle bg-warning shadow-sm" style="width:2.5rem;height:2.5rem;display:inline-block"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex justify-content-center mb-2">
+                            <span class="rounded bg-success shadow-sm d-inline-flex align-items-center justify-content-center text-white" style="width:2.5rem;height:2.5rem;font-size:1.4rem;font-weight:700">&#10004;</span>
+                        </div>
+                    }
+                    @if (_lastUpdate is not null)
+                    {
+                        <div class="text-muted" style="font-size:0.65rem">@_lastUpdate.Value.ToLocalTime().ToString("d/M/yyyy, h:mm:ss tt")</div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (_openIncidents.Any())
+{
+    <h5 class="mb-2">Alertas Activas <span class="badge bg-danger ms-1">@_openIncidents.Count</span></h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Módulo</th>
+                    <th>Sev.</th>
+                    <th>¿Qué ocurrió?</th>
+                    <th class="text-nowrap">Detectado</th>
+                    <th>Causa</th>
+                    <th>Siguiente paso</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var inc in _openIncidents)
+                {
+                    <tr>
+                        <td>
+                            <span class="badge bg-secondary">M@((int)inc.Module)</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-@SeverityColor(inc.Severity)">@inc.Severity.ToString().ToUpper()</span>
+                        </td>
+                        <td class="small">@(inc.Alert?.QuePaso ?? "-")</td>
+                        <td class="small text-nowrap">@inc.OpenedAt.ToLocalTime().ToString("d/M/yyyy, h:mm tt")</td>
+                        <td class="small">
+                            <span class="text-warning fw-semibold">@inc.Cause.ToString().ToLower()</span>
+                        </td>
+                        <td class="small">@(inc.Alert?.AccionSugerida ?? "-")</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-success"
+                                    style="min-width:5rem"
+                                    @onclick="() => ResolveAsync(inc.Id)"
+                                    disabled="@_resolving.Contains(inc.Id)">
+                                &#10003; Resolver
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-success py-2 mb-4">Sin incidentes activos actualmente.</div>
+}
+
+<div class="d-flex align-items-center mb-2">
+    <h5 class="mb-0">Brand Monitor</h5>
+    <span class="text-muted small ms-2">— pedidos pendientes por marca</span>
+    <button class="btn btn-outline-secondary btn-sm ms-auto" @onclick="RefreshBrandAsync">&#8635; Actualizar</button>
+</div>
+
+@if (_brandLoading)
+{
+    <p class="text-muted small">Cargando datos de marcas...</p>
+}
+else if (!_brandSnapshots.Any())
+{
+    <div class="alert alert-secondary py-2">Sin datos aún. Espere el primer ciclo del scheduler (10 min).</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Marca</th>
+                    <th class="text-center">Pendientes actuales</th>
+                    <th class="text-center">Hace 10 min</th>
+                    <th class="text-center">Cambio</th>
+                    <th class="text-center">Estado</th>
+                    <th>Actualizado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in _brandSnapshots)
+                {
+                    var bc = s.Status switch
+                    {
+                        SnapshotStatus.Green  => "success",
+                        SnapshotStatus.Yellow => "warning",
+                        SnapshotStatus.Red    => "danger",
+                        _                     => "secondary"
+                    };
+                    var be = s.Status switch
+                    {
+                        SnapshotStatus.Green  => "🟢 OK",
+                        SnapshotStatus.Yellow => "🟡 Moderado",
+                        SnapshotStatus.Red    => "🔴 Crítico",
+                        _                     => "— N/D"
+                    };
+                    var drop = s.PendingCountPrevious - s.PendingCountCurrent;
+                    <tr>
+                        <td><strong>@s.Site</strong></td>
+                        <td class="text-center fw-semibold">@(s.PendingCountCurrent < 0 ? "N/D" : s.PendingCountCurrent.ToString())</td>
+                        <td class="text-center text-muted">@s.PendingCountPrevious</td>
+                        <td class="text-center">
+                            @if (s.PendingCountCurrent >= 0 && drop != 0)
+                            {
+                                <span class="@(drop > 0 ? "text-success" : "text-danger") fw-semibold">
+                                    @(drop > 0 ? $"▼ {drop}" : $"▲ {-drop}")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-@bc">@be</span>
+                        </td>
+                        <td class="text-muted small">@s.CheckedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private DateTimeOffset?              _lastUpdate     = null;
+    private List<DomainCard>             _domains        = BuildDefaultDomains();
+    private List<Incident>               _openIncidents  = [];
+    private IReadOnlyList<BrandSnapshot> _brandSnapshots = [];
+    private bool                         _brandLoading   = true;
+    private HashSet<Guid>                _resolving      = [];
+    private string                       _userRole       = "Operador";
+
+    private string _overallColor = "success";
+    private string _overallText  = "OPERATIVO";
+
+    private Func<AlertMessage, Task>? _alertHandler;
+    private Func<Guid, Task>?         _closeHandler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userRole = auth.User.IsInRole("Técnico") ? "Técnico" : "Operador";
+
+        await RefreshIncidentsAsync();
+        await RefreshBrandAsync();
+
+        _alertHandler = async _ =>
+        {
+            await RefreshIncidentsAsync();
+            await InvokeAsync(StateHasChanged);
+        };
+        _closeHandler = async _ =>
+        {
+            await RefreshIncidentsAsync();
+            await InvokeAsync(StateHasChanged);
+        };
+
+        Broadcaster.OnAlert          += _alertHandler;
+        Broadcaster.OnIncidentClosed += _closeHandler;
+    }
+
+    private async Task ManualRefreshAsync()
+    {
+        await RefreshIncidentsAsync();
+        StateHasChanged();
+    }
+
+    private async Task RefreshIncidentsAsync()
+    {
+        try
+        {
+            var filter = new IncidentSearchFilter { Take = 100 };
+            var paged  = await IncidentService.SearchHistoryAsync(filter);
+            _openIncidents = paged.Items
+                .Where(i => i.ClosedAt is null)
+                .OrderByDescending(i => i.OpenedAt)
+                .ToList();
+            _lastUpdate = DateTimeOffset.UtcNow;
+
+            _domains = BuildDefaultDomains();
+            foreach (var inc in _openIncidents)
+                UpdateDomainCard(inc);
+
+            UpdateOverallStatus();
+        }
+        catch { }
+    }
+
+    private async Task RefreshBrandAsync()
+    {
+        try
+        {
+            _brandLoading = true;
+            StateHasChanged();
+            _brandSnapshots = await BrandMonitorService.GetCurrentSnapshotsAsync();
+        }
+        catch
+        {
+            _brandSnapshots = [];
+        }
+        finally
+        {
+            _brandLoading = false;
+        }
+    }
+
+    private async Task ResolveAsync(Guid id)
+    {
+        if (_resolving.Contains(id)) return;
+        _resolving.Add(id);
+        try
+        {
+            await IncidentService.CloseManuallyAsync(id, _userRole, "Cerrado manualmente desde Dashboard");
+            await RefreshIncidentsAsync();
+        }
+        catch { }
+        finally
+        {
+            _resolving.Remove(id);
+        }
+    }
+
+    private void UpdateDomainCard(Incident inc)
+    {
+        var label = inc.Module switch
+        {
+            ModuleId.DbOrderChecker  => "BD Pedidos",
+            ModuleId.DbHealthChecker => "BD Salud",
+            ModuleId.JobsMonitor     => "Jobs",
+            ModuleId.SalesforceApi or ModuleId.MultivendeApi => "APIs Externas",
+            _ => null
+        };
+        if (label is null) return;
+
+        var card = _domains.FirstOrDefault(d => d.Label == label);
+        if (card is null) return;
+
+        if (SeverityColor(inc.Severity) == "danger" || card.Color != "danger")
+        {
+            card.Color = SeverityColor(inc.Severity);
+        }
+    }
+
+    private void UpdateOverallStatus()
+    {
+        if (_openIncidents.Any(i => i.Severity == Severity.Critical))
+        {
+            _overallColor = "danger";
+            _overallText  = "CRÍTICO";
+        }
+        else if (_openIncidents.Any(i => i.Severity == Severity.Warn))
+        {
+            _overallColor = "warning";
+            _overallText  = "ADVERTENCIA";
+        }
+        else
+        {
+            _overallColor = "success";
+            _overallText  = "OPERATIVO";
+        }
+    }
+
+    private static string SeverityColor(Severity s) => s switch
+    {
+        Severity.Critical => "danger",
+        Severity.Warn     => "warning",
+        _                 => "success"
+    };
+
+    private static List<DomainCard> BuildDefaultDomains() =>
+    [
+        new("BD Pedidos",    "M2",  "success"),
+        new("APIs Externas", "M3",  "success"),
+        new("BD Salud",      "M4",  "success"),
+        new("Jobs",          "M11", "success"),
+    ];
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_alertHandler is not null) Broadcaster.OnAlert          -= _alertHandler;
+        if (_closeHandler is not null) Broadcaster.OnIncidentClosed -= _closeHandler;
+        await Task.CompletedTask;
+    }
+
+    private sealed class DomainCard(string label, string code, string color)
+    {
+        public string Label { get; }      = label;
+        public string Code  { get; }      = code;
+        public string Color { get; set; } = color;
+    }
+}
+
+@using MonitorPedidos.Domain.Alerts
+@using MonitorPedidos.Domain.Dashboard
+@using MonitorPedidos.Domain.Incidents
+@using MonitorPedidos.Domain.Shared
+@using MonitorPedidos.Web.Services
+@using System.Security.Claims

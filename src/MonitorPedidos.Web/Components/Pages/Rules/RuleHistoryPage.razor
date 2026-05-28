@@ -1,0 +1,109 @@
+@page "/rules/history/{RuleId:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Técnico")]
+@inject IRuleManagementService RuleService
+@inject NavigationManager Nav
+
+<PageTitle>Historial de Regla</PageTitle>
+
+<h2 class="mb-3">Historial de Cambios</h2>
+
+<a href="/rules" class="btn btn-secondary mb-3">← Volver a Reglas</a>
+
+@if (_loading)
+{
+    <p>Cargando...</p>
+}
+else if (!_history.Any())
+{
+    <p class="text-muted">Sin historial de cambios para esta regla.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Operación</th>
+                <th>Autor</th>
+                <th>Motivo</th>
+                <th>Detalle</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var entry in _history)
+            {
+                <tr>
+                    <td>@entry.ChangedAt.ToLocalTime().ToString("dd/MM/yy HH:mm")</td>
+                    <td>
+                        <span class="badge @BadgeClass(entry.ChangeType)">
+                            @entry.ChangeType
+                        </span>
+                    </td>
+                    <td>@entry.AuthorUserId</td>
+                    <td>@entry.Reason</td>
+                    <td>
+                        @if (entry.SnapshotBefore is not null || entry.SnapshotAfter is not null)
+                        {
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    @onclick="() => ToggleDetail(entry.Id)">
+                                @(_expandedId == entry.Id ? "Ocultar" : "Ver")
+                            </button>
+                        }
+                    </td>
+                </tr>
+                @if (_expandedId == entry.Id)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <div class="row">
+                                @if (entry.SnapshotBefore is not null)
+                                {
+                                    <div class="col-md-6">
+                                        <strong>Antes:</strong>
+                                        <pre class="border p-2 small bg-light">@entry.SnapshotBefore</pre>
+                                    </div>
+                                }
+                                @if (entry.SnapshotAfter is not null)
+                                {
+                                    <div class="col-md-6">
+                                        <strong>Después:</strong>
+                                        <pre class="border p-2 small bg-light">@entry.SnapshotAfter</pre>
+                                    </div>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public Guid RuleId { get; set; }
+
+    private IReadOnlyList<RuleHistoryEntry> _history = [];
+    private bool _loading    = true;
+    private Guid? _expandedId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _history = await RuleService.GetHistoryAsync(RuleId);
+        _loading = false;
+    }
+
+    private void ToggleDetail(Guid id)
+        => _expandedId = _expandedId == id ? null : id;
+
+    private static string BadgeClass(RuleChangeType changeType) => changeType switch
+    {
+        RuleChangeType.Creation    => "bg-success",
+        RuleChangeType.Edit        => "bg-primary",
+        RuleChangeType.Activation  => "bg-info text-dark",
+        RuleChangeType.Deactivation => "bg-warning text-dark",
+        _                          => "bg-secondary"
+    };
+}
+
+@using MonitorPedidos.Domain.Rules
+@using MonitorPedidos.Domain.Shared

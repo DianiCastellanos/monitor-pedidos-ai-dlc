@@ -1,0 +1,157 @@
+@page "/rules"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Técnico")]
+@inject IRuleManagementService RuleService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Gestión de Reglas</PageTitle>
+
+<h2 class="mb-3">Reglas de Monitoreo</h2>
+
+<div class="mb-3">
+    <a href="/rules/edit" class="btn btn-primary">+ Nueva regla</a>
+</div>
+
+@if (_loading)
+{
+    <p>Cargando...</p>
+}
+else if (!_rules.Any())
+{
+    <p class="text-muted">No hay reglas configuradas.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Módulo</th>
+                <th>Severidad</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rule in _rules)
+            {
+                <tr>
+                    <td>@rule.Name</td>
+                    <td>@rule.AppliesTo</td>
+                    <td>@rule.Severity</td>
+                    <td>
+                        @if (rule.IsActive)
+                        {
+                            <span class="badge bg-success">Activa</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactiva</span>
+                        }
+                    </td>
+                    <td>
+                        <a href="/rules/edit/@rule.Id" class="btn btn-sm btn-outline-primary me-1">Editar</a>
+                        <a href="/rules/history/@rule.Id" class="btn btn-sm btn-outline-secondary me-1">Historial</a>
+                        @if (rule.IsActive)
+                        {
+                            <button class="btn btn-sm btn-outline-warning"
+                                    @onclick="() => ShowToggleModal(rule.Id, false)">
+                                Desactivar
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-success"
+                                    @onclick="() => ShowToggleModal(rule.Id, true)">
+                                Activar
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (_showModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(_activating ? "Activar" : "Desactivar") regla</h5>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Motivo (obligatorio)</label>
+                    <input class="form-control" @bind="_reason" placeholder="Ingrese el motivo..." />
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <div class="alert alert-danger mt-2">@_errorMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="ConfirmToggle">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    private IReadOnlyList<Rule> _rules = [];
+    private bool   _loading      = true;
+    private bool   _showModal    = false;
+    private bool   _activating   = false;
+    private Guid   _targetRuleId;
+    private string _reason       = string.Empty;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rules   = await RuleService.GetAllRulesAsync();
+        _loading = false;
+    }
+
+    private void ShowToggleModal(Guid ruleId, bool activate)
+    {
+        _targetRuleId = ruleId;
+        _activating   = activate;
+        _reason       = string.Empty;
+        _errorMessage = string.Empty;
+        _showModal    = true;
+    }
+
+    private void CloseModal() => _showModal = false;
+
+    private async Task ConfirmToggle()
+    {
+        if (string.IsNullOrWhiteSpace(_reason))
+        {
+            _errorMessage = "El motivo es obligatorio.";
+            return;
+        }
+
+        var auth   = await AuthState.GetAuthenticationStateAsync();
+        var userId = auth.User.Identity?.Name ?? "desconocido";
+
+        try
+        {
+            if (_activating)
+                await RuleService.ActivateRuleAsync(_targetRuleId, userId, _reason);
+            else
+                await RuleService.DeactivateRuleAsync(_targetRuleId, userId, _reason);
+
+            _showModal = false;
+            _rules     = await RuleService.GetAllRulesAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+}
+
+@using MonitorPedidos.Domain.Rules
+@using Microsoft.AspNetCore.Components.Authorization

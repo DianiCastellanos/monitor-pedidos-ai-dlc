@@ -1,6 +1,6 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">MonitorPedidos.Web</a>
+        <a class="navbar-brand" href="/dashboard">MonitorPedidos</a>
     </div>
 </div>
 
@@ -9,22 +9,48 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            <NavLink class="nav-link" href="/dashboard">
+                <span class="bi bi-speedometer2-nav-menu" aria-hidden="true"></span> Dashboard
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="/incidents">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Historial
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            <NavLink class="nav-link" href="/incidents/weekly">
+                <span class="bi bi-bar-chart-nav-menu" aria-hidden="true"></span> Resumen Semanal
             </NavLink>
         </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/discrepancies">
+                <span class="bi bi-exclamation-triangle-nav-menu" aria-hidden="true"></span> Discrepancias
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/noc">
+                <span class="bi bi-display-nav-menu" aria-hidden="true"></span> Modo NOC
+            </NavLink>
+        </div>
+
+        <AuthorizeView Roles="Técnico">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="/rules">
+                        <span class="bi bi-list-check-nav-menu" aria-hidden="true"></span> Reglas
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="/logs">
+                        <span class="bi bi-journal-text-nav-menu" aria-hidden="true"></span> Logs Técnicos
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
     </nav>
 </div>
-

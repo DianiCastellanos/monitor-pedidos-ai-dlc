@@ -36,10 +36,10 @@
 - **Detalle completo**: ver [`inception/plans/execution-plan.md`](inception/plans/execution-plan.md)
 
 ## Current Status
-- **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: U7 Simulation & Red-Teaming — Act4 Infrastructure Design ✅ APROBADO
-- **Next Stage**: Build & Test — ON HOLD (no iniciado por decisión del owner)
-- **Status**: ✅ U7 APROBADA. Todas las unidades (U1–U7) completas y aprobadas. Build & Test pendiente activación explícita del owner.
+- **Lifecycle Phase**: CONSTRUCTION — COMPLETO ✅
+- **Current Stage**: Build & Test — EJECUTADO 2026-05-28
+- **Next Stage**: OPERATIONS (placeholder — sin activar)
+- **Status**: ✅ CÓDIGO GENERADO U1–U7. Build & Test completado: 50/50 tests (45 unit + 5 integration). 5 migraciones aplicadas. App arranca correctamente. MVP listo para demo.
 
 ## Stage Progress
 
@@ -66,7 +66,7 @@
 - [x] **U5 — Rules Management** — ✅ CERRADA 2026-05-24. Act1 ✅ Act2 ✅ Act3 ✅ Act4 ✅. 11 artefactos. Act5 Code Generation OUT OF SCOPE.
 - [x] **U6 — Dashboard & Real-Time** — ✅ CERRADA 2026-05-24. Act1 ✅ Act2 ✅ Act3 ✅ Act4 ✅. 10 artefactos. Act5 Code Generation OUT OF SCOPE.
 - [x] **U7 — Simulation & Red-Teaming** — ✅ CERRADA 2026-05-24. Act1 ✅ Act2 ✅ Act3 ✅ Act4 ✅. 11 artefactos: domain-entities.md, business-logic-model.md, business-rules.md, frontend-components.md, nfr-requirements.md, tech-stack-decisions.md, nfr-design-patterns.md, logical-components.md, infrastructure-design.md, deployment-architecture.md (Mermaid final U1–U7), red-team-report-template.md. Act5 Code Generation OUT OF SCOPE.
-- [x] **Build & Test** — ✅ DOCUMENTADO 2026-05-24. 5 artefactos: build-instructions.md, unit-test-instructions.md, integration-test-instructions.md, performance-test-instructions.md, build-and-test-summary.md. Ejecución real ON HOLD hasta que el código sea generado (Act5 pendiente activación).
+- [x] **Build & Test** — ✅ EJECUTADO 2026-05-28. 50/50 tests passing (45 unit + 5 integration). Build 0 errores. 5 migraciones aplicadas. App arranca. MVP completo.
 
 ### Plans — Estado de archivos de plan
 - [x] **Plans U1** — 4 archivos (Act1–Act4) ✅ existían desde 2026-05-23

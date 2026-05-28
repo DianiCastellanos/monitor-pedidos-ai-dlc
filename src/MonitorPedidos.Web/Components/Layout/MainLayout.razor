@@ -3,48 +3,40 @@
 @using System.Security.Claims
 @using MonitorPedidos.Domain.Identity
 
-<div class="app-shell">
-    <header class="app-header">
-        <span class="app-brand">MonitorPedidos</span>
-        <div class="app-header-right">
-            <span class="app-user">@DisplayName</span>
-            <form method="post" action="/Identity/Logout" style="display:inline">
-                <button type="submit" class="btn-logout">Salir</button>
-            </form>
-        </div>
-    </header>
+<nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm sticky-top px-3 px-md-4">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold me-4" href="/dashboard">
+        <span class="text-danger" style="font-size:1rem">&#9679;</span> MonitorPedidos AI
+    </a>
 
-    <div class="app-body">
-        <nav class="app-nav">
-            <a href="/dashboard" class="nav-item">Dashboard</a>
-            <a href="/history" class="nav-item">Historial</a>
-            <a href="/summary" class="nav-item">Resumen Semanal</a>
-            <a href="/discrepancies" class="nav-item">Discrepancias</a>
-            <a href="/brand-monitor" class="nav-item">Brand Monitor</a>
-            @if (IsTecnico)
-            {
-                <a href="/rules" class="nav-item">Reglas</a>
-                <a href="/logs" class="nav-item">Logs Técnicos</a>
-                <a href="/simulation" class="nav-item">Simulación (Dev)</a>
-            }
-            <a href="/noc" class="nav-item">Modo NOC</a>
-        </nav>
-
-        <main class="app-content">
-            @Body
-        </main>
+    <div class="navbar-nav flex-row flex-wrap gap-1 me-auto">
+        <a href="/dashboard"        class="nav-link px-2">Dashboard</a>
+        <a href="/incidents"        class="nav-link px-2">Historial</a>
+        <a href="/incidents/weekly" class="nav-link px-2">Resumen Semanal</a>
+        @if (IsTecnico)
+        {
+            <a href="/rules" class="nav-link px-2">Reglas</a>
+            <a href="/logs"  class="nav-link px-2">Logs</a>
+        }
     </div>
-</div>
+
+    <div class="d-flex align-items-center gap-2 ms-3">
+        <span class="badge bg-light text-secondary border" style="font-size:0.75rem">
+            @(IsTecnico ? "Responsable Técnico" : "Analista Operativo")
+        </span>
+        <a href="/Identity/Logout" class="btn btn-sm btn-outline-secondary">Salir</a>
+    </div>
+</nav>
+
+<main class="container-fluid px-3 px-md-4 py-3">
+    @Body
+</main>
 
 @code {
-    private string DisplayName { get; set; } = string.Empty;
     private bool IsTecnico { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        DisplayName = user.FindFirst(ClaimTypes.Name)?.Value ?? "Usuario";
-        IsTecnico = user.IsInRole(ApplicationRole.Names.Tecnico);
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        IsTecnico = auth.User.IsInRole(ApplicationRole.Names.Tecnico);
     }
 }

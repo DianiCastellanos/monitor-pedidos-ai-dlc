@@ -1,0 +1,186 @@
+@page "/rules/edit"
+@page "/rules/edit/{RuleId:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Técnico")]
+@inject IRuleManagementService RuleService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>@(_isNew ? "Nueva Regla" : "Editar Regla")</PageTitle>
+
+<h2 class="mb-3">@(_isNew ? "Nueva Regla" : "Editar Regla")</h2>
+
+@if (_loading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="card" style="max-width:600px">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Nombre</label>
+                <input class="form-control" @bind="_name" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Descripción</label>
+                <textarea class="form-control" rows="2" @bind="_description"></textarea>
+            </div>
+
+            @if (_isNew)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Módulo</label>
+                    <select class="form-select" @bind="_selectedModule">
+                        <option value="@ModuleId.DbOrderChecker">DbOrderChecker — Pedidos BD</option>
+                        <option value="@ModuleId.DbHealthChecker">DbHealthChecker — Salud BD</option>
+                        <option value="@ModuleId.JobsMonitor">JobsMonitor — Jobs</option>
+                        <option value="@ModuleId.BrandMonitor">BrandMonitor — Marcas</option>
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label">Módulo</label>
+                    <input class="form-control" value="@_selectedModule" disabled />
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label">Severidad</label>
+                <select class="form-select" @bind="_selectedSeverity">
+                    <option value="@Severity.Warn">Warn</option>
+                    <option value="@Severity.Critical">Critical</option>
+                </select>
+            </div>
+
+            @if (_selectedModule == ModuleId.DbOrderChecker)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Ventana (horas)</label>
+                    <input type="number" class="form-control" @bind="_windowHours" min="1" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Pedidos mínimos</label>
+                    <input type="number" class="form-control" @bind="_minOrders" min="1" />
+                </div>
+            }
+            else if (_selectedModule == ModuleId.DbHealthChecker)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Latencia WARN (ms)</label>
+                    <input type="number" class="form-control" @bind="_latencyWarnMs" min="1" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Latencia CRITICAL (ms)</label>
+                    <input type="number" class="form-control" @bind="_latencyCriticalMs" min="1" />
+                </div>
+            }
+            else if (_selectedModule == ModuleId.BrandMonitor)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Umbral caída pendientes</label>
+                    <input type="number" class="form-control" @bind="_pendingDropThreshold" min="1" />
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label">Motivo del cambio (obligatorio)</label>
+                <input class="form-control" @bind="_reason" placeholder="Ej: Ajuste de umbral operativo" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger">@_errorMessage</div>
+            }
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" @onclick="SaveAsync">Guardar</button>
+                <a href="/rules" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? RuleId { get; set; }
+
+    private bool     _loading             = true;
+    private bool     _isNew               => !RuleId.HasValue;
+    private string   _name                = string.Empty;
+    private string   _description         = string.Empty;
+    private ModuleId _selectedModule      = ModuleId.DbOrderChecker;
+    private Severity _selectedSeverity    = Severity.Critical;
+    private string   _reason              = string.Empty;
+    private string   _errorMessage        = string.Empty;
+
+    private int _windowHours          = 2;
+    private int _minOrders            = 1;
+    private int _latencyWarnMs        = 500;
+    private int _latencyCriticalMs    = 2000;
+    private int _pendingDropThreshold = 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RuleId.HasValue)
+        {
+            var rule = await RuleService.GetRuleByIdAsync(RuleId.Value);
+            if (rule is not null)
+            {
+                _name           = rule.Name;
+                _description    = rule.Description;
+                _selectedModule = rule.AppliesTo;
+                _selectedSeverity = rule.Severity;
+
+                var cond = rule.GetCondition();
+                _windowHours          = cond.WindowHours          ?? 2;
+                _minOrders            = cond.MinOrders            ?? 1;
+                _latencyWarnMs        = cond.LatencyWarnMs        ?? 500;
+                _latencyCriticalMs    = cond.LatencyCriticalMs    ?? 2000;
+                _pendingDropThreshold = cond.PendingDropThreshold ?? 5;
+            }
+        }
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(_reason))
+        {
+            _errorMessage = "El motivo es obligatorio.";
+            return;
+        }
+
+        var condition = _selectedModule switch
+        {
+            ModuleId.DbOrderChecker  => RuleCondition.ForDbOrders(_windowHours, _minOrders),
+            ModuleId.DbHealthChecker => RuleCondition.ForDbHealth(_latencyWarnMs, _latencyCriticalMs),
+            ModuleId.JobsMonitor     => RuleCondition.ForJobs(),
+            ModuleId.BrandMonitor    => RuleCondition.ForBrandMonitor(_pendingDropThreshold),
+            _                        => RuleCondition.ForJobs()
+        };
+
+        var auth   = await AuthState.GetAuthenticationStateAsync();
+        var userId = auth.User.Identity?.Name ?? "desconocido";
+
+        try
+        {
+            if (_isNew)
+                await RuleService.CreateRuleAsync(_name, _description, _selectedModule, condition, _selectedSeverity, userId, _reason);
+            else
+                await RuleService.UpdateRuleAsync(RuleId!.Value, _name, _description, condition, _selectedSeverity, userId, _reason);
+
+            Nav.NavigateTo("/rules");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+}
+
+@using MonitorPedidos.Domain.Rules
+@using MonitorPedidos.Domain.Shared
+@using Microsoft.AspNetCore.Components.Authorization

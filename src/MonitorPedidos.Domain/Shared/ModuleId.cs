@@ -12,5 +12,7 @@ public enum ModuleId
     IncidentManager = 9,
     AlertRenderer   = 10,
     JobsMonitor     = 11,
-    BrandMonitor    = 12
+    BrandMonitor    = 12,
+    SalesforceApi   = 13,
+    MultivendeApi   = 14
 }

@@ -1,0 +1,62 @@
+@page "/discrepancies"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IIncidentService IncidentService
+
+<PageTitle>Discrepancias — MonitorPedidos</PageTitle>
+
+<h2 class="mb-3">Discrepancias Detectadas</h2>
+<p class="text-muted small mb-3">Incidentes clasificados como discrepancia entre sistemas. Sin notificación automática (UC6).</p>
+
+@if (_loading)
+{
+    <p>Cargando...</p>
+}
+else if (!_items.Any())
+{
+    <div class="alert alert-success py-2">No se han detectado discrepancias.</div>
+}
+else
+{
+    <table class="table table-sm table-hover">
+        <thead>
+            <tr>
+                <th>Módulo</th>
+                <th>Severidad</th>
+                <th>Detectado</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var inc in _items)
+            {
+                <tr>
+                    <td>@inc.Module</td>
+                    <td><span class="badge bg-warning text-dark">@inc.Severity</span></td>
+                    <td>@inc.OpenedAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                    <td>@(inc.ClosedAt is null ? "Abierto" : "Cerrado")</td>
+                    <td><a href="/incidents/@inc.Id" class="btn btn-sm btn-outline-secondary">Ver</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Incident> _items = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var filter = new IncidentSearchFilter { Take = 100 };
+        var paged  = await IncidentService.SearchHistoryAsync(filter);
+        _items   = paged.Items
+            .Where(i => i.Cause == CauseCategory.NoDeterminada)
+            .OrderByDescending(i => i.OpenedAt)
+            .ToList();
+        _loading = false;
+    }
+}
+
+@using MonitorPedidos.Domain.Incidents
+@using MonitorPedidos.Domain.Shared

@@ -22,6 +22,47 @@ namespace MonitorPedidos.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("MonitorPedidos.Domain.Dashboard.BrandSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<int>("PendingCountCurrent")
+                        .HasColumnType("integer")
+                        .HasColumnName("pending_count_current");
+
+                    b.Property<int>("PendingCountPrevious")
+                        .HasColumnType("integer")
+                        .HasColumnName("pending_count_previous");
+
+                    b.Property<string>("Site")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("site");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Site")
+                        .IsUnique()
+                        .HasDatabaseName("IX_brand_snapshots_Site");
+
+                    b.ToTable("brand_snapshots", (string)null);
+                });
+
             modelBuilder.Entity("MonitorPedidos.Domain.Incidents.Incident", b =>
                 {
                     b.Property<Guid>("Id")
@@ -59,6 +100,10 @@ namespace MonitorPedidos.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("OpenedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("RetryMetadataJson")
+                        .HasColumnType("text")
+                        .HasColumnName("retry_metadata");
+
                     b.Property<string>("Severity")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -78,6 +123,187 @@ namespace MonitorPedidos.Infrastructure.Migrations
                         .HasDatabaseName("IX_incidents_Module_ClosedAt");
 
                     b.ToTable("incidents", (string)null);
+                });
+
+            modelBuilder.Entity("MonitorPedidos.Domain.Rules.Rule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliesTo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ConditionJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("condition_json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppliesTo", "IsActive")
+                        .HasDatabaseName("IX_rules_Module_Active");
+
+                    b.ToTable("rules", (string)null);
+                });
+
+            modelBuilder.Entity("MonitorPedidos.Domain.Rules.RuleHistoryEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorUserId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<string>("ChangeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("change_type");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rule_id");
+
+                    b.Property<string>("SnapshotAfter")
+                        .HasColumnType("text")
+                        .HasColumnName("snapshot_after");
+
+                    b.Property<string>("SnapshotBefore")
+                        .HasColumnType("text")
+                        .HasColumnName("snapshot_before");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedAt")
+                        .HasDatabaseName("IX_rule_history_ChangedAt");
+
+                    b.HasIndex("RuleId")
+                        .HasDatabaseName("IX_rule_history_RuleId");
+
+                    b.ToTable("rule_history", (string)null);
+                });
+
+            modelBuilder.Entity("MonitorPedidos.Domain.Simulation.SimulatedJobStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error_message");
+
+                    b.Property<string>("JobName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("job_name");
+
+                    b.Property<DateTime>("LastRunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_run_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobName")
+                        .IsUnique()
+                        .HasDatabaseName("UX_simulated_job_statuses_job_name");
+
+                    b.ToTable("simulated_job_statuses", (string)null);
+                });
+
+            modelBuilder.Entity("MonitorPedidos.Domain.Simulation.SimulatedOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsFailure")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_failure");
+
+                    b.Property<string>("Site")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("site");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_simulated_orders_created_at");
+
+                    b.ToTable("simulated_orders", (string)null);
                 });
 
             modelBuilder.Entity("MonitorPedidos.Domain.Incidents.Incident", b =>
@@ -130,6 +356,15 @@ namespace MonitorPedidos.Infrastructure.Migrations
                         });
 
                     b.Navigation("Alert")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MonitorPedidos.Domain.Rules.RuleHistoryEntry", b =>
+                {
+                    b.HasOne("MonitorPedidos.Domain.Rules.Rule", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

@@ -1,4 +1,6 @@
+using System.Text.Json;
 using MonitorPedidos.Domain.Alerts;
+using MonitorPedidos.Domain.Monitoring;
 using MonitorPedidos.Domain.Shared;
 
 namespace MonitorPedidos.Domain.Incidents;
@@ -16,6 +18,7 @@ public sealed class Incident
     public string?           ClosedByRole          { get; private set; }
     public string?           ComentarioResolucion  { get; private set; }
     public bool              IsCandidatoReglaNueva { get; private set; }
+    public string?           RetryMetadataJson     { get; private set; }
 
     public bool IsOpen   => ClosedAt is null;
     public bool IsClosed => ClosedAt is not null;
@@ -57,6 +60,24 @@ public sealed class Incident
         CloseType            = IncidentCloseType.Manual;
         ClosedByRole         = closedByRole;
         ComentarioResolucion = comentario.Trim();
+    }
+
+    // INV-U4-01: solo aplica a incidentes con Cause == Api (401 Token no reintenta)
+    public void AddRetryAttempt(RetryAttempt attempt)
+    {
+        if (Cause != CauseCategory.Api)
+            throw new DomainException($"RetryAttempts solo aplican a incidentes Api. Cause actual: {Cause}");
+
+        var attempts = GetRetryAttempts().ToList();
+        attempts.Add(attempt);
+        RetryMetadataJson = JsonSerializer.Serialize(attempts);
+    }
+
+    public IReadOnlyList<RetryAttempt> GetRetryAttempts()
+    {
+        if (string.IsNullOrEmpty(RetryMetadataJson))
+            return Array.Empty<RetryAttempt>();
+        return JsonSerializer.Deserialize<List<RetryAttempt>>(RetryMetadataJson) ?? [];
     }
 
     public bool IsExpired(int retentionDays) =>
