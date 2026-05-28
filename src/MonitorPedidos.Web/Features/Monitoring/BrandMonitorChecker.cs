@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using MonitorPedidos.Domain.Dashboard;
 using MonitorPedidos.Domain.Monitoring;
 using MonitorPedidos.Domain.Shared;
@@ -5,50 +6,70 @@ using MonitorPedidos.Domain.Simulation;
 
 namespace MonitorPedidos.Web.Features.Monitoring;
 
-/// <summary>
-/// Monitorea el FLUJO de pedidos por marca.
-/// Detecta si el backlog crece (descarga detenida) o baja (descarga normal).
-/// </summary>
 public sealed class BrandMonitorChecker(
     ISimulatedOrderRepository    simRepo,
     IBrandSnapshotRepository     snapshotRepo,
+    IConfiguration               config,
     ILogger<BrandMonitorChecker> logger) : ICheckExecutor
 {
     public ModuleId Module => ModuleId.BrandMonitor;
 
     public async Task<CheckResult> ExecuteAsync(CancellationToken ct = default)
     {
-        var now = DateTime.UtcNow;
+        var windowSeconds = config.GetValue("Monitoring:BrandMonitorWindowSeconds", 600);
+        var window        = TimeSpan.FromSeconds(windowSeconds);
+        var now           = DateTime.UtcNow;
 
-        // Ventana actual: pedidos de los últimos 10 minutos
-        var actual   = await simRepo.CountBySiteAsync(now.AddMinutes(-10), now, ct);
+        logger.LogInformation(
+            "[BrandMonitorChecker] ExecuteAsync iniciado — ventana={W}s now={Now:HH:mm:ss.fff}",
+            windowSeconds, now);
 
-        // Ventana anterior: pedidos de hace 10-20 minutos
-        var anterior = await simRepo.CountBySiteAsync(now.AddMinutes(-20), now.AddMinutes(-10), ct);
+        var currentCounts = await simRepo.CountBySiteAsync(now - window, now, ct);
+
+        logger.LogInformation(
+            "[BrandMonitorChecker] Órdenes contadas en ventana: {Counts}",
+            string.Join(", ", currentCounts.Select(kv => $"{kv.Key}={kv.Value}")));
 
         foreach (var site in BrandSnapshot.Sites)
         {
-            var countActual   = actual.TryGetValue(site, out var a) ? a : 0;
-            var countAnterior = anterior.TryGetValue(site, out var p) ? p : 0;
+            var currentCount = currentCounts.TryGetValue(site, out var c) ? c : 0;
 
-            // Lógica de flujo:
-            // actual < anterior → backlog baja  → OK   (descarga funcionando)
-            // actual == anterior → sin cambio   → WARN (posible problema)
-            // actual > anterior  → backlog crece → CRITICAL (descarga detenida)
-            var status = countActual < countAnterior
-                ? SnapshotStatus.Green
-                : countActual == countAnterior
-                    ? SnapshotStatus.Yellow
-                    : SnapshotStatus.Red;
+            var previousSnapshot = await snapshotRepo.GetSnapshotBeforeAsync(
+                site, now - window, ct);
 
-            var snapshot = BrandSnapshot.Create(site, countActual, countAnterior, status);
-            await snapshotRepo.UpsertAsync(snapshot, ct);
+            SnapshotStatus status;
+            int?           previousCount;
 
-            logger.LogDebug(
-                "BrandMonitor site={Site} actual={A} anterior={P} status={S}",
-                site, countActual, countAnterior, status);
+            if (previousSnapshot is null)
+            {
+                status        = SnapshotStatus.NoData;
+                previousCount = null;
+            }
+            else
+            {
+                previousCount = previousSnapshot.PendingCountCurrent;
+                status        = DetermineStatus(currentCount, previousCount.Value);
+            }
+
+            logger.LogInformation(
+                "[BrandMonitorChecker] site={Site} actual={A} anterior={P} status={S} — llamando InsertAsync",
+                site, currentCount, previousCount?.ToString() ?? "N/D", status);
+
+            var snapshot = BrandSnapshot.Create(site, currentCount, previousCount, status);
+            await snapshotRepo.InsertAsync(snapshot, ct);
+
+            logger.LogInformation("[BrandMonitorChecker] site={Site} — InsertAsync completado", site);
         }
 
-        return CheckResult.Ok($"Brand monitor actualizado — {BrandSnapshot.Sites.Length} sites.");
+        logger.LogInformation("[BrandMonitorChecker] ExecuteAsync finalizado — {N} sites procesados", BrandSnapshot.Sites.Length);
+
+        return CheckResult.Ok($"Brand monitor actualizado — {BrandSnapshot.Sites.Length} sites (ventana {windowSeconds}s).");
+    }
+
+    private static SnapshotStatus DetermineStatus(int current, int previous)
+    {
+        if (current < previous) return SnapshotStatus.Green;
+        if (current == previous) return SnapshotStatus.Yellow;
+        return SnapshotStatus.Red;
     }
 }

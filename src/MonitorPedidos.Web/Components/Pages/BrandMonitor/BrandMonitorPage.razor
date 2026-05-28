@@ -32,23 +32,34 @@ else
         <tbody>
             @foreach (var s in _snapshots)
             {
-                var drop  = s.PendingCountPrevious - s.PendingCountCurrent;
-                var color = StatusBadgeClass(s.Status);
+                var hasHistory   = s.PendingCountPrevious.HasValue;
+                var drop         = hasHistory ? s.PendingCountPrevious!.Value - s.PendingCountCurrent : (int?)null;
+                var badgeColor   = hasHistory ? DropBadgeClass(drop)  : "secondary";
+                var badgeLabel   = hasHistory ? DropBadgeLabel(drop)   : "Sin datos";
                 <tr>
                     <td><strong>@s.Site</strong></td>
                     <td class="text-center">@(s.PendingCountCurrent < 0 ? "N/D" : s.PendingCountCurrent.ToString())</td>
-                    <td class="text-center">@s.PendingCountPrevious</td>
+                    <td class="text-center text-muted">@(hasHistory ? s.PendingCountPrevious!.Value.ToString() : "—")</td>
                     <td class="text-center">
-                        @if (s.PendingCountCurrent >= 0)
+                        @if (!hasHistory)
                         {
-                            <span class="@(drop > 0 ? "text-success" : drop < 0 ? "text-danger" : "text-muted")">
-                                @(drop > 0 ? $"▼ {drop}" : drop < 0 ? $"▲ {-drop}" : "—")
-                            </span>
+                            <span class="text-muted">—</span>
                         }
-                        else { <span class="text-muted">—</span> }
+                        else if (drop > 0)
+                        {
+                            <span class="text-success">▼ @drop</span>
+                        }
+                        else if (drop < 0)
+                        {
+                            <span class="text-danger">▲ @(-drop)</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
                     </td>
                     <td class="text-center">
-                        <span class="badge bg-@color fs-6">@StatusEmoji(s.Status)</span>
+                        <span class="badge bg-@badgeColor fs-6">@badgeLabel</span>
                     </td>
                     <td class="text-muted small">@s.CheckedAt.ToLocalTime().ToString("HH:mm:ss")</td>
                 </tr>
@@ -57,7 +68,7 @@ else
     </table>
 }
 
-<button class="btn btn-outline-secondary btn-sm" @onclick="RefreshAsync">↻ Actualizar</button>
+<button class="btn btn-outline-secondary btn-sm" @onclick="RefreshAsync" disabled="@_loading">↻ Actualizar</button>
 
 @code {
     private IReadOnlyList<BrandSnapshot> _snapshots = [];
@@ -67,25 +78,33 @@ else
 
     private async Task RefreshAsync()
     {
-        _loading   = true;
-        _snapshots = await BrandMonitorService.GetCurrentSnapshotsAsync();
-        _loading   = false;
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            await BrandMonitorService.SimulateAndRefreshAsync();
+            _snapshots = await BrandMonitorService.GetCurrentSnapshotsAsync();
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 
-    private static string StatusBadgeClass(SnapshotStatus s) => s switch
+    // Badge derivado del drop real — s.Status no manda cuando hay histórico
+    private static string DropBadgeClass(int? drop) => drop switch
     {
-        SnapshotStatus.Green  => "success",
-        SnapshotStatus.Yellow => "warning text-dark",
-        SnapshotStatus.Red    => "danger",
-        _                     => "secondary"
+        > 0 => "success",
+        < 0 => "danger",
+        _   => "warning text-dark"
     };
 
-    private static string StatusEmoji(SnapshotStatus s) => s switch
+    private static string DropBadgeLabel(int? drop) => drop switch
     {
-        SnapshotStatus.Green  => "🟢 OK",
-        SnapshotStatus.Yellow => "🟡 Moderado",
-        SnapshotStatus.Red    => "🔴 Crítico",
-        _                     => "—"
+        > 0 => "🟢 OK",
+        < 0 => "🔴 Crítico",
+        _   => "🟡 Moderado"
     };
 }
 

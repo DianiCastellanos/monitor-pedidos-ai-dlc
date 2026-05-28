@@ -12,10 +12,20 @@
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h2 class="mb-0 fw-bold">Dashboard — MonitorPedidos AI</h2>
-        <p class="text-muted small mb-0">Actualización en tiempo real</p>
+        <p class="text-muted small mb-0">
+            @if (_lastUpdate is not null)
+            {
+                <span>Último chequeo: <strong>@_lastUpdate.Value.ToLocalTime().ToString("HH:mm:ss")</strong> &nbsp;·&nbsp; próximo en <strong>@_countdown s</strong></span>
+            }
+            else
+            {
+                <span>Cargando...</span>
+            }
+        </p>
     </div>
     <div class="d-flex gap-2 align-items-center flex-wrap">
-        <button class="btn btn-outline-secondary btn-sm" @onclick="ManualRefreshAsync">
+        <button class="btn btn-outline-secondary btn-sm" @onclick="ManualRefreshAsync" disabled="@_refreshing">
+            @if (_refreshing) { <span class="spinner-border spinner-border-sm me-1"></span> }
             &#9889; Chequear ahora
         </button>
         <span class="badge fs-6 px-3 py-2 bg-@_overallColor">&#9679; @_overallText</span>
@@ -50,7 +60,7 @@
                     }
                     @if (_lastUpdate is not null)
                     {
-                        <div class="text-muted" style="font-size:0.65rem">@_lastUpdate.Value.ToLocalTime().ToString("d/M/yyyy, h:mm:ss tt")</div>
+                        <div class="text-muted" style="font-size:0.65rem">@_lastUpdate.Value.ToLocalTime().ToString("HH:mm:ss")</div>
                     }
                 </div>
             </div>
@@ -140,31 +150,27 @@ else
             <tbody>
                 @foreach (var s in _brandSnapshots)
                 {
-                    var bc = s.Status switch
-                    {
-                        SnapshotStatus.Green  => "success",
-                        SnapshotStatus.Yellow => "warning",
-                        SnapshotStatus.Red    => "danger",
-                        _                     => "secondary"
-                    };
-                    var be = s.Status switch
-                    {
-                        SnapshotStatus.Green  => "🟢 OK",
-                        SnapshotStatus.Yellow => "🟡 Moderado",
-                        SnapshotStatus.Red    => "🔴 Crítico",
-                        _                     => "— N/D"
-                    };
-                    var drop = s.PendingCountPrevious - s.PendingCountCurrent;
+                    var hasHistory = s.PendingCountPrevious.HasValue;
+                    var drop       = hasHistory ? s.PendingCountPrevious!.Value - s.PendingCountCurrent : (int?)null;
+                    // Badge derivado del drop real — hasHistory es la única fuente de verdad para "Sin datos"
+                    var bc = !hasHistory ? "secondary" : drop switch { > 0 => "success", < 0 => "danger", _ => "warning" };
+                    var be = !hasHistory ? "Sin datos"  : drop switch { > 0 => "🟢 OK",   < 0 => "🔴 Crítico", _ => "🟡 Moderado" };
                     <tr>
                         <td><strong>@s.Site</strong></td>
                         <td class="text-center fw-semibold">@(s.PendingCountCurrent < 0 ? "N/D" : s.PendingCountCurrent.ToString())</td>
-                        <td class="text-center text-muted">@s.PendingCountPrevious</td>
+                        <td class="text-center text-muted">@(hasHistory ? s.PendingCountPrevious!.Value.ToString() : "—")</td>
                         <td class="text-center">
-                            @if (s.PendingCountCurrent >= 0 && drop != 0)
+                            @if (!hasHistory)
                             {
-                                <span class="@(drop > 0 ? "text-success" : "text-danger") fw-semibold">
-                                    @(drop > 0 ? $"▼ {drop}" : $"▲ {-drop}")
-                                </span>
+                                <span class="text-muted">—</span>
+                            }
+                            else if (drop > 0)
+                            {
+                                <span class="text-success fw-semibold">▼ @drop</span>
+                            }
+                            else if (drop < 0)
+                            {
+                                <span class="text-danger fw-semibold">▲ @(-drop)</span>
                             }
                             else
                             {
@@ -183,27 +189,31 @@ else
 }
 
 @code {
+    private const int RefreshIntervalSeconds = 30;
+
     private DateTimeOffset?              _lastUpdate     = null;
     private List<DomainCard>             _domains        = BuildDefaultDomains();
     private List<Incident>               _openIncidents  = [];
     private IReadOnlyList<BrandSnapshot> _brandSnapshots = [];
     private bool                         _brandLoading   = true;
+    private bool                         _refreshing     = false;
     private HashSet<Guid>                _resolving      = [];
     private string                       _userRole       = "Operador";
+    private int                          _countdown      = RefreshIntervalSeconds;
 
     private string _overallColor = "success";
     private string _overallText  = "OPERATIVO";
 
     private Func<AlertMessage, Task>? _alertHandler;
     private Func<Guid, Task>?         _closeHandler;
+    private CancellationTokenSource   _cts = new();
 
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthStateProvider.GetAuthenticationStateAsync();
         _userRole = auth.User.IsInRole("Técnico") ? "Técnico" : "Operador";
 
-        await RefreshIncidentsAsync();
-        await RefreshBrandAsync();
+        await RefreshAllAsync();
 
         _alertHandler = async _ =>
         {
@@ -218,12 +228,45 @@ else
 
         Broadcaster.OnAlert          += _alertHandler;
         Broadcaster.OnIncidentClosed += _closeHandler;
+
+        _ = StartAutoRefreshAsync(_cts.Token);
+    }
+
+    private async Task StartAutoRefreshAsync(CancellationToken ct)
+    {
+        // Cuenta regresiva cada segundo, refresca cada RefreshIntervalSeconds
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(1000, ct);
+                _countdown--;
+                if (_countdown <= 0)
+                {
+                    _countdown = RefreshIntervalSeconds;
+                    await RefreshAllAsync();
+                }
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException) { break; }
+            catch { /* ignorar errores de red en el timer */ }
+        }
     }
 
     private async Task ManualRefreshAsync()
     {
-        await RefreshIncidentsAsync();
+        _refreshing = true;
+        _countdown  = RefreshIntervalSeconds;
         StateHasChanged();
+        await RefreshAllAsync();
+        _refreshing = false;
+        StateHasChanged();
+    }
+
+    private async Task RefreshAllAsync()
+    {
+        await RefreshIncidentsAsync();
+        await RefreshBrandAsync();
     }
 
     private async Task RefreshIncidentsAsync()
@@ -249,19 +292,17 @@ else
 
     private async Task RefreshBrandAsync()
     {
+        _brandLoading = true;
+        StateHasChanged();
         try
         {
-            _brandLoading = true;
-            StateHasChanged();
+            await BrandMonitorService.SimulateAndRefreshAsync();
             _brandSnapshots = await BrandMonitorService.GetCurrentSnapshotsAsync();
-        }
-        catch
-        {
-            _brandSnapshots = [];
         }
         finally
         {
             _brandLoading = false;
+            StateHasChanged();
         }
     }
 
@@ -338,9 +379,10 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        await _cts.CancelAsync();
+        _cts.Dispose();
         if (_alertHandler is not null) Broadcaster.OnAlert          -= _alertHandler;
         if (_closeHandler is not null) Broadcaster.OnIncidentClosed -= _closeHandler;
-        await Task.CompletedTask;
     }
 
     private sealed class DomainCard(string label, string code, string color)

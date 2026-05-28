@@ -23,7 +23,7 @@ public sealed class BrandSnapshotConfiguration : IEntityTypeConfiguration<BrandS
 
         entity.Property(s => s.PendingCountPrevious)
             .HasColumnName("pending_count_previous")
-            .IsRequired();
+            .IsRequired(false);
 
         entity.Property(s => s.CheckedAt)
             .HasColumnName("checked_at")
@@ -35,8 +35,7 @@ public sealed class BrandSnapshotConfiguration : IEntityTypeConfiguration<BrandS
             .HasMaxLength(20)
             .IsRequired();
 
-        entity.HasIndex(s => s.Site)
-            .IsUnique()
-            .HasDatabaseName("IX_brand_snapshots_Site");
+        entity.HasIndex(s => new { s.Site, s.CheckedAt })
+            .HasDatabaseName("IX_brand_snapshots_Site_CheckedAt");
     }
 }

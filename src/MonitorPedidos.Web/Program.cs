@@ -86,9 +86,10 @@ builder.Services.AddSignalR(opts =>
 builder.Services.AddSingleton<AlertBroadcaster>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBrandSnapshotRepository, BrandSnapshotRepository>();
+builder.Services.AddScoped<BrandMonitorChecker>();
+builder.Services.AddScoped<ICheckExecutor>(sp => sp.GetRequiredService<BrandMonitorChecker>());
 builder.Services.AddScoped<IBrandMonitorService, BrandMonitorService>();
 builder.Services.AddScoped<ITechnicalLogReader, TechnicalLogReader>();
-builder.Services.AddScoped<ICheckExecutor, BrandMonitorChecker>();
 // ─────────────────────────────────────────────────────────────────────────
 
 // ── U2: Persistence & Incidents ──────────────────────────────────────────
