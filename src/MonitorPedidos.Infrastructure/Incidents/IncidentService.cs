@@ -17,7 +17,14 @@ public sealed class IncidentService(
         AlertMessage alert, CancellationToken ct = default)
     {
         var existing = await repo.GetOpenByModuleAsync(module, ct);
-        if (existing is not null) return existing;
+        if (existing is not null)
+        {
+            existing.UpdateAlert(alert, severity);
+            await repo.CloseAllByModuleExceptAsync(module, existing.Id, ct);
+            await repo.SaveChangesAsync(ct);
+            await notifications.NotifyIncidentAsync(existing.Id, ct);
+            return existing;
+        }
 
         var incident = Incident.Open(module, cause, severity, alert);
         await repo.AddAsync(incident, ct);

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using MonitorPedidos.Domain.Monitoring;
 using MonitorPedidos.Domain.Rules;
 using MonitorPedidos.Domain.Shared;
@@ -9,11 +10,11 @@ namespace MonitorPedidos.UnitTests.Monitoring;
 
 public class DbOrderCheckerTests
 {
-    private static Mock<IRuleRepository> RuleRepoWithActiveRule(int windowHours = 2, int minOrders = 1)
+    private static Mock<IRuleRepository> RuleRepoWithActiveRule(int windowMinutes = 10, int minOrders = 1)
     {
         var rule = Rule.Create("Regla test", "Desc",
             ModuleId.DbOrderChecker,
-            RuleCondition.ForDbOrders(windowHours, minOrders),
+            RuleCondition.ForDbOrders(windowMinutes, minOrders),
             Severity.Critical);
 
         var mock = new Mock<IRuleRepository>();
@@ -30,6 +31,9 @@ public class DbOrderCheckerTests
         return mock;
     }
 
+    private static ILogger<DbOrderChecker> Logger() =>
+        Mock.Of<ILogger<DbOrderChecker>>();
+
     [Fact]
     public async Task ExecuteAsync_NoOrders_ReturnsCritical()
     {
@@ -38,7 +42,7 @@ public class DbOrderCheckerTests
                 It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<OrderSnapshot>());
 
-        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule().Object);
+        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule().Object, Logger());
         var result  = await checker.ExecuteAsync();
 
         Assert.Equal(CheckStatus.Critical, result.Status);
@@ -46,18 +50,24 @@ public class DbOrderCheckerTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithActiveOrders_ReturnsOk()
+    public async Task ExecuteAsync_AllChannelsHaveOrders_ReturnsOk()
     {
         var source = new Mock<IOrderSource>();
         source.Setup(s => s.GetOrdersInWindowAsync(It.IsAny<DateTimeOffset>(),
                 It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { new OrderSnapshot("ORD-1", DateTimeOffset.UtcNow, false) });
+            .ReturnsAsync(new[]
+            {
+                new OrderSnapshot("SALESFORCE", DateTimeOffset.UtcNow, false),
+                new OrderSnapshot("MULTIVENDE", DateTimeOffset.UtcNow, false),
+            });
 
-        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule().Object);
+        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule().Object, Logger());
         var result  = await checker.ExecuteAsync();
 
         Assert.Equal(CheckStatus.Ok, result.Status);
         Assert.False(result.RequiresIncident);
+        Assert.Contains("SALESFORCE", result.Details);
+        Assert.Contains("MULTIVENDE", result.Details);
     }
 
     [Fact]
@@ -68,72 +78,33 @@ public class DbOrderCheckerTests
                 It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
-                new OrderSnapshot("ORD-1", DateTimeOffset.UtcNow, true),
-                new OrderSnapshot("ORD-2", DateTimeOffset.UtcNow, true),
+                new OrderSnapshot("SALESFORCE", DateTimeOffset.UtcNow, true),
+                new OrderSnapshot("MULTIVENDE", DateTimeOffset.UtcNow, true),
             });
 
-        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule().Object);
+        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule().Object, Logger());
         var result  = await checker.ExecuteAsync();
 
         Assert.Equal(CheckStatus.Critical, result.Status);
     }
 
     [Fact]
-    public async Task ExecuteAsync_MixedOrders_ActiveCountInDetails()
+    public async Task ExecuteAsync_SalesforceZero_ReturnsCritical()
     {
         var source = new Mock<IOrderSource>();
         source.Setup(s => s.GetOrdersInWindowAsync(It.IsAny<DateTimeOffset>(),
                 It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
-                new OrderSnapshot("ORD-1", DateTimeOffset.UtcNow, false),
-                new OrderSnapshot("ORD-2", DateTimeOffset.UtcNow, true),
+                new OrderSnapshot("MULTIVENDE", DateTimeOffset.UtcNow, false),
             });
 
-        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule().Object);
-        var result  = await checker.ExecuteAsync();
-
-        Assert.Equal(CheckStatus.Ok, result.Status);
-        Assert.Contains("1 pedido", result.Details);
-    }
-
-    [Fact]
-    public void Module_IsDbOrderChecker()
-    {
-        var checker = new DbOrderChecker(Mock.Of<IOrderSource>(), Mock.Of<IRuleRepository>());
-        Assert.Equal(ModuleId.DbOrderChecker, checker.Module);
-    }
-
-    // ── Tests U5 nuevos ───────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task ExecuteAsync_NoActiveRules_ReturnsOk()
-    {
-        // BR-RULE-08: sin reglas activas → Ok (sin falso positivo)
-        var source = new Mock<IOrderSource>();
-        source.Setup(s => s.GetOrdersInWindowAsync(It.IsAny<DateTimeOffset>(),
-                It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<OrderSnapshot>());
-
-        var checker = new DbOrderChecker(source.Object, RuleRepoNoRules().Object);
-        var result  = await checker.ExecuteAsync();
-
-        Assert.Equal(CheckStatus.Ok, result.Status);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_ActiveRuleWithThreshold_ZeroOrders_ReturnsCritical()
-    {
-        var source = new Mock<IOrderSource>();
-        source.Setup(s => s.GetOrdersInWindowAsync(It.IsAny<DateTimeOffset>(),
-                It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<OrderSnapshot>());
-
-        // minOrders = 3
-        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule(windowHours: 2, minOrders: 3).Object);
+        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule().Object, Logger());
         var result  = await checker.ExecuteAsync();
 
         Assert.Equal(CheckStatus.Critical, result.Status);
+        Assert.Contains("SALESFORCE:0:CRITICAL", result.Details);
+        Assert.Contains("MULTIVENDE:1:OK", result.Details);
     }
 
     [Fact]
@@ -142,12 +113,37 @@ public class DbOrderCheckerTests
         var source = new Mock<IOrderSource>();
         source.Setup(s => s.GetOrdersInWindowAsync(It.IsAny<DateTimeOffset>(),
                 It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { new OrderSnapshot("ORD-1", DateTimeOffset.UtcNow, false) });
+            .ReturnsAsync(new[]
+            {
+                new OrderSnapshot("SALESFORCE", DateTimeOffset.UtcNow, false),
+                new OrderSnapshot("MULTIVENDE", DateTimeOffset.UtcNow, false),
+            });
 
-        // minOrders = 5 → 1 orden no alcanza
-        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule(windowHours: 2, minOrders: 5).Object);
+        // minOrders = 5 → 1 por canal no alcanza
+        var checker = new DbOrderChecker(source.Object, RuleRepoWithActiveRule(windowMinutes: 10, minOrders: 5).Object, Logger());
         var result  = await checker.ExecuteAsync();
 
         Assert.Equal(CheckStatus.Critical, result.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_NoActiveRules_UsesDefaultsAndReturnsCritical_WhenNoOrders()
+    {
+        var source = new Mock<IOrderSource>();
+        source.Setup(s => s.GetOrdersInWindowAsync(It.IsAny<DateTimeOffset>(),
+                It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<OrderSnapshot>());
+
+        var checker = new DbOrderChecker(source.Object, RuleRepoNoRules().Object, Logger());
+        var result  = await checker.ExecuteAsync();
+
+        Assert.Equal(CheckStatus.Critical, result.Status);
+    }
+
+    [Fact]
+    public void Module_IsDbOrderChecker()
+    {
+        var checker = new DbOrderChecker(Mock.Of<IOrderSource>(), Mock.Of<IRuleRepository>(), Logger());
+        Assert.Equal(ModuleId.DbOrderChecker, checker.Module);
     }
 }

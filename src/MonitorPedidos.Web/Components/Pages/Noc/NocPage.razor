@@ -17,6 +17,18 @@
                     <h6 class="card-title">@domain.Label</h6>
                     <span class="fs-3 badge bg-@domain.Color">@domain.StatusText</span>
                     <p class="card-text text-muted small mt-1">@domain.Detail</p>
+                    @if (domain.Channels is not null)
+                    {
+                        <div class="mt-2 text-start small">
+                            @foreach (var ch in domain.Channels)
+                            {
+                                <div class="d-flex justify-content-between @(ch.IsOk ? "" : "text-danger fw-semibold")">
+                                    <span>@ch.Name</span>
+                                    <span>@ch.Count ped @(ch.IsOk ? "✅" : "❌")</span>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -83,6 +95,29 @@ else
         card.StatusText = inc.Severity.ToString();
         card.Color      = SeverityColor(inc.Severity);
         card.Detail     = inc.Alert?.QuePaso ?? "";
+
+        if (inc.Module == ModuleId.DbOrderChecker && inc.Alert?.QuePaso is { } details)
+        {
+            card.Channels = ParseChannelDetails(details);
+        }
+    }
+
+    private static List<ChannelItem>? ParseChannelDetails(string details)
+    {
+        var parts = details.Split('|', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return null;
+
+        var items = new List<ChannelItem>();
+        foreach (var part in parts)
+        {
+            var segments = part.Split(':');
+            if (segments.Length >= 3 &&
+                int.TryParse(segments[1], out var count))
+            {
+                items.Add(new ChannelItem(segments[0], count, segments[2] == "OK"));
+            }
+        }
+        return items.Count > 0 ? items : null;
     }
 
     private static string SeverityColor(Severity s) => s switch
@@ -109,11 +144,14 @@ else
 
     private sealed class DomainCard(string label, string statusText, string color, string detail)
     {
-        public string Label      { get; } = label;
-        public string StatusText { get; set; } = statusText;
-        public string Color      { get; set; } = color;
-        public string Detail     { get; set; } = detail;
+        public string               Label      { get; } = label;
+        public string               StatusText { get; set; } = statusText;
+        public string               Color      { get; set; } = color;
+        public string               Detail     { get; set; } = detail;
+        public List<ChannelItem>?   Channels   { get; set; }
     }
+
+    private sealed record ChannelItem(string Name, int Count, bool IsOk);
 }
 
 @using MonitorPedidos.Domain.Alerts

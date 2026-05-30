@@ -1,5 +1,6 @@
 @page "/incidents"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
 @inject IIncidentService IncidentService
 @inject NavigationManager Nav
 
@@ -33,7 +34,7 @@
                     <option value="">Todos</option>
                     @foreach (var m in Enum.GetValues<ModuleId>())
                     {
-                        <option value="@m">@m</option>
+                        <option value="@m">@ModuleLabel(m)</option>
                     }
                 </select>
             </div>
@@ -72,8 +73,8 @@ else
             @foreach (var inc in _result.Items)
             {
                 <tr>
-                    <td>@inc.Module</td>
-                    <td>@inc.Cause</td>
+                    <td>@ModuleLabel(inc.Module)</td>
+                    <td>@CauseLabel(inc.Cause)</td>
                     <td>
                         <span class="badge @SeverityBadge(inc.Severity)">@inc.Severity</span>
                     </td>
@@ -163,5 +164,34 @@ else
         Severity.Critical => "bg-danger",
         Severity.Warn     => "bg-warning text-dark",
         _                 => "bg-secondary"
+    };
+
+    private static string ModuleLabel(ModuleId m) => m switch
+    {
+        ModuleId.DbOrderChecker  => "M2 — BD Pedidos",
+        ModuleId.ApiChecker      => "M3 — APIs Externas",
+        ModuleId.DbHealthChecker => "M4 — BD Salud",
+        ModuleId.JobsMonitor     => "M11 — Jobs Sync",
+        ModuleId.SalesforceApi   => "M13 — Salesforce API",
+        ModuleId.MultivendeApi   => "M14 — Multivende API",
+        ModuleId.Scheduler       => "M1 — Scheduler",
+        ModuleId.RulesManagement => "M6 — Reglas",
+        ModuleId.CauseClassifier => "M7 — Clasificador",
+        ModuleId.Dashboard       => "M8 — Dashboard",
+        ModuleId.IncidentManager => "M9 — Incidentes",
+        ModuleId.AlertRenderer   => "M10 — Alertas",
+        ModuleId.BrandMonitor    => "M12 — Brand Monitor",
+        _                        => m.ToString()
+    };
+
+    private static string CauseLabel(CauseCategory c) => c switch
+    {
+        CauseCategory.Bd            => "Base de Datos",
+        CauseCategory.Job           => "Job",
+        CauseCategory.Api           => "API",
+        CauseCategory.Token         => "Token",
+        CauseCategory.DataQuality   => "Calidad de Datos",
+        CauseCategory.NoDeterminada => "No Determinada",
+        _                           => c.ToString()
     };
 }

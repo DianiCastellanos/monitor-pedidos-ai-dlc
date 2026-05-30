@@ -1,6 +1,7 @@
 @page "/rules/edit"
 @page "/rules/edit/{RuleId:guid}"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Técnico")]
+@rendermode InteractiveServer
 @inject IRuleManagementService RuleService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthState
@@ -57,11 +58,11 @@ else
             @if (_selectedModule == ModuleId.DbOrderChecker)
             {
                 <div class="mb-3">
-                    <label class="form-label">Ventana (horas)</label>
-                    <input type="number" class="form-control" @bind="_windowHours" min="1" />
+                    <label class="form-label">Ventana (minutos)</label>
+                    <input type="number" class="form-control" @bind="_windowMinutes" min="1" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Pedidos mínimos</label>
+                    <label class="form-label">Pedidos mínimos por canal</label>
                     <input type="number" class="form-control" @bind="_minOrders" min="1" />
                 </div>
             }
@@ -114,7 +115,7 @@ else
     private string   _reason              = string.Empty;
     private string   _errorMessage        = string.Empty;
 
-    private int _windowHours          = 2;
+    private int _windowMinutes        = 60;
     private int _minOrders            = 1;
     private int _latencyWarnMs        = 500;
     private int _latencyCriticalMs    = 2000;
@@ -129,11 +130,11 @@ else
             {
                 _name           = rule.Name;
                 _description    = rule.Description;
-                _selectedModule = rule.AppliesTo;
+                _selectedModule = rule.ModuleId;
                 _selectedSeverity = rule.Severity;
 
                 var cond = rule.GetCondition();
-                _windowHours          = cond.WindowHours          ?? 2;
+                _windowMinutes        = cond.WindowMinutes        ?? cond.WindowHours * 60 ?? 60;
                 _minOrders            = cond.MinOrders            ?? 1;
                 _latencyWarnMs        = cond.LatencyWarnMs        ?? 500;
                 _latencyCriticalMs    = cond.LatencyCriticalMs    ?? 2000;
@@ -155,7 +156,7 @@ else
 
         var condition = _selectedModule switch
         {
-            ModuleId.DbOrderChecker  => RuleCondition.ForDbOrders(_windowHours, _minOrders),
+            ModuleId.DbOrderChecker  => RuleCondition.ForDbOrders(_windowMinutes, _minOrders, ["SALESFORCE", "MULTIVENDE"]),
             ModuleId.DbHealthChecker => RuleCondition.ForDbHealth(_latencyWarnMs, _latencyCriticalMs),
             ModuleId.JobsMonitor     => RuleCondition.ForJobs(),
             ModuleId.BrandMonitor    => RuleCondition.ForBrandMonitor(_pendingDropThreshold),

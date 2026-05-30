@@ -10,36 +10,74 @@ public sealed class DbOrderChecker : ICheckExecutor
 
     private readonly IOrderSource   _orderSource;
     private readonly IRuleRepository _ruleRepo;
+    private readonly ILogger<DbOrderChecker> _logger;
 
-    public DbOrderChecker(IOrderSource orderSource, IRuleRepository ruleRepo)
+    public DbOrderChecker(IOrderSource orderSource, IRuleRepository ruleRepo, ILogger<DbOrderChecker> logger)
     {
         _orderSource = orderSource;
         _ruleRepo    = ruleRepo;
+        _logger      = logger;
     }
 
     public async Task<CheckResult> ExecuteAsync(CancellationToken ct = default)
     {
         var rules = await _ruleRepo.GetActiveByModuleAsync(ModuleId.DbOrderChecker, ct);
 
-        if (!rules.Any())
-            return CheckResult.Ok("Sin reglas activas para DbOrderChecker — chequeo omitido.");
+        int      windowMinutes;
+        int      minOrders;
+        string[] channels;
 
-        var condition   = rules[0].GetCondition();
-        var windowHours = condition.WindowHours   ?? 2;
-        var minOrders   = condition.MinOrders      ?? 1;
+        if (rules.Any())
+        {
+            var condition  = rules[0].GetCondition();
+            windowMinutes  = condition.WindowMinutes ?? (condition.WindowHours ?? 1) * 60;
+            minOrders      = condition.MinOrders      ?? 1;
+            channels       = condition.Channels       ?? ["SALESFORCE", "MULTIVENDE"];
+        }
+        else
+        {
+            windowMinutes = 10;
+            minOrders     = 1;
+            channels      = ["SALESFORCE", "MULTIVENDE"];
+        }
 
         var to     = DateTimeOffset.UtcNow;
-        var from   = to.AddHours(-windowHours);
+        var from   = to.AddMinutes(-windowMinutes);
+
         var orders = await _orderSource.GetOrdersInWindowAsync(from, to, ct);
 
-        var active = orders.Where(o => !o.IsCancelled).ToList();
+        var channelCounts = orders
+            .Where(o => !o.IsCancelled)
+            .GroupBy(o => o.OrderId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
 
-        if (active.Count == 0)
-            return CheckResult.Critical($"Sin pedidos activos en las últimas {windowHours}h (mínimo esperado: {minOrders}).");
+        var entries = new List<string>(channels.Length);
+        var okCount = 0;
 
-        if (active.Count < minOrders)
-            return CheckResult.Critical($"Solo {active.Count} pedido(s) en {windowHours}h, se esperaban al menos {minOrders}.");
+        foreach (var ch in channels)
+        {
+            var count  = channelCounts.GetValueOrDefault(ch, 0);
+            var status = count >= minOrders ? "OK" : "SIN_PEDIDOS";
 
-        return CheckResult.Ok($"{active.Count} pedido(s) activos en las últimas {windowHours}h.");
+            entries.Add($"{ch}:{count}:{status}");
+            if (count >= minOrders) okCount++;
+        }
+
+        var details = string.Join("|", entries);
+
+        CheckResult result;
+
+        if (okCount == channels.Length)
+            result = CheckResult.Ok(details);
+        else if (okCount == 0)
+            result = CheckResult.Critical(details);
+        else
+            result = CheckResult.Warn(details);
+
+        _logger.LogInformation(
+            "[DbOrderChecker] Canales: {Details} (ventana={W}min, minOrders={M}, estado={S})",
+            details, windowMinutes, minOrders, result.Status);
+
+        return result;
     }
 }

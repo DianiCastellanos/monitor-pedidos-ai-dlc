@@ -1,5 +1,6 @@
 @page "/rules/history/{RuleId:guid}"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Técnico")]
+@rendermode InteractiveServer
 @inject IRuleManagementService RuleService
 @inject NavigationManager Nav
 

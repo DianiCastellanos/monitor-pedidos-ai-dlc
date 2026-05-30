@@ -23,7 +23,7 @@ public class RuleManagementServiceValidationTests
         var (svc, _, _) = Build();
         await Assert.ThrowsAnyAsync<ArgumentException>(() =>
             svc.CreateRuleAsync("N", "D", ModuleId.DbOrderChecker,
-                RuleCondition.ForDbOrders(2, 1), Severity.Critical,
+                RuleCondition.ForDbOrders(120, 1), Severity.Critical,
                 "user1", " "));
     }
 
@@ -32,12 +32,12 @@ public class RuleManagementServiceValidationTests
     {
         var (svc, ruleRepo, _) = Build();
         var rule = Rule.Create("N", "D", ModuleId.DbOrderChecker,
-            RuleCondition.ForDbOrders(2, 1), Severity.Critical);
+            RuleCondition.ForDbOrders(120, 1), Severity.Critical);
         ruleRepo.Setup(r => r.GetByIdAsync(rule.Id, default)).ReturnsAsync(rule);
 
         await Assert.ThrowsAnyAsync<ArgumentException>(() =>
             svc.UpdateRuleAsync(rule.Id, "N2", "D2",
-                RuleCondition.ForDbOrders(3, 2), Severity.Critical,
+                RuleCondition.ForDbOrders(180, 2), Severity.Critical,
                 "user1", ""));
     }
 
@@ -62,7 +62,7 @@ public class RuleManagementServiceValidationTests
     {
         var (svc, _, _) = Build();
         // DbOrders condition applied to DbHealthChecker — invalid
-        var badCondition = RuleCondition.ForDbOrders(2, 1);
+        var badCondition = RuleCondition.ForDbOrders(120, 1);
         await Assert.ThrowsAnyAsync<ArgumentException>(() =>
             svc.CreateRuleAsync("N", "D", ModuleId.DbHealthChecker,
                 badCondition, Severity.Warn,

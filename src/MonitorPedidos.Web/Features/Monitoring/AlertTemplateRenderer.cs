@@ -10,20 +10,20 @@ public static class AlertTemplateRenderer
         _templates = new Dictionary<(CauseCategory, Severity), Func<CheckContext, AlertMessage>>
         {
             [(CauseCategory.Bd, Severity.Critical)] = ctx => new AlertMessage(
-                QuePaso:        $"No se detectaron pedidos activos en el módulo {ctx.Module}.",
+                QuePaso:        ctx.CheckDetails,
                 Cuando:         ctx.DetectedAt,
-                Donde:          $"Módulo {ctx.Module} — Base de Datos",
+                Donde:          "Base de Datos — Pedidos",
                 SeveridadTexto: "CRÍTICO",
-                CausaProbable:  "Posible falla en la base de datos o ausencia real de transacciones.",
-                AccionSugerida: "Verificar conectividad con la BD. Revisar logs del motor SQL."),
+                CausaProbable:  "Uno o más canales no reportan pedidos en la ventana configurada.",
+                AccionSugerida: "Verificar conectividad orígenes. Revisar logs de integración."),
 
             [(CauseCategory.Bd, Severity.Warn)] = ctx => new AlertMessage(
-                QuePaso:        $"Latencia alta en la base de datos del módulo {ctx.Module}.",
+                QuePaso:        ctx.CheckDetails,
                 Cuando:         ctx.DetectedAt,
-                Donde:          $"Módulo {ctx.Module} — Base de Datos",
+                Donde:          "Base de Datos — Pedidos",
                 SeveridadTexto: "ADVERTENCIA",
-                CausaProbable:  "Degradación de rendimiento de la BD. Posible sobrecarga.",
-                AccionSugerida: "Monitorear latencia. Revisar queries activas en la base de datos."),
+                CausaProbable:  "Un canal no reporta pedidos en la ventana configurada.",
+                AccionSugerida: "Verificar conectividad del canal afectado. Revisar logs de integración."),
 
             [(CauseCategory.Job, Severity.Critical)] = ctx => new AlertMessage(
                 QuePaso:        $"Job de integración detenido en el módulo {ctx.Module}.",

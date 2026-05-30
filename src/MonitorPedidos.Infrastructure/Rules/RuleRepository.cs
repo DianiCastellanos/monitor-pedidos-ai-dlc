@@ -18,7 +18,7 @@ public sealed class RuleRepository(AppDbContext context) : IRuleRepository
 
     public async Task<IReadOnlyList<Rule>> GetActiveByModuleAsync(ModuleId module, CancellationToken ct = default)
         => await context.Rules.AsNoTracking()
-            .Where(r => r.IsActive && r.AppliesTo == module)
+            .Where(r => r.IsActive && r.ModuleId == module)
             .ToListAsync(ct);
 
     public async Task<Rule?> GetByIdAsync(Guid ruleId, CancellationToken ct = default)

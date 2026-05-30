@@ -15,6 +15,7 @@ public sealed class IncidentRepository(AppDbContext context) : IIncidentReposito
 
     public async Task<Incident?> GetOpenByModuleAsync(ModuleId module, CancellationToken ct = default)
         => await context.Incidents
+            .OrderByDescending(i => i.OpenedAt)
             .FirstOrDefaultAsync(i => i.Module == module && i.ClosedAt == null, ct);
 
     public async Task<IReadOnlyList<Incident>> GetRecentClosedByModuleAsync(
@@ -59,9 +60,10 @@ public sealed class IncidentRepository(AppDbContext context) : IIncidentReposito
         var rawGroups = await context.Incidents
             .AsNoTracking()
             .Where(i => i.OpenedAt >= from && i.OpenedAt < to)
-            .GroupBy(i => new { i.Cause, i.Severity })
+            .GroupBy(i => new { i.Module, i.Cause, i.Severity })
             .Select(g => new
             {
+                g.Key.Module,
                 g.Key.Cause,
                 g.Key.Severity,
                 Count                = g.Count(),
@@ -70,10 +72,21 @@ public sealed class IncidentRepository(AppDbContext context) : IIncidentReposito
             .ToListAsync(ct);
 
         return rawGroups
-            .Select(x => new WeeklySummaryEntry(x.Cause, x.Severity, x.Count, x.CandidatosReglaNueva))
+            .Select(x => new WeeklySummaryEntry(x.Module, x.Cause, x.Severity, x.Count, x.CandidatosReglaNueva))
             .OrderByDescending(e => (int)e.Severity)
             .ThenByDescending(e => e.Count)
             .ToList();
+    }
+
+    public async Task CloseAllByModuleExceptAsync(
+        ModuleId module, Guid exceptId, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        await context.Incidents
+            .Where(i => i.Module == module && i.ClosedAt == null && i.Id != exceptId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(i => i.ClosedAt, now)
+                .SetProperty(i => i.CloseType, IncidentCloseType.Automatic), ct);
     }
 
     public async Task<int> PurgeExpiredAsync(int retentionDays, CancellationToken ct = default)

@@ -10,7 +10,7 @@ public sealed class Rule
     public Guid            Id            { get; private set; }
     public string          Name          { get; private set; } = string.Empty;
     public string          Description   { get; private set; } = string.Empty;
-    public ModuleId        AppliesTo     { get; private set; }
+    public ModuleId        ModuleId     { get; private set; }
     public string          ConditionJson { get; private set; } = string.Empty;
     public Severity        Severity      { get; private set; }
     public bool            IsActive      { get; private set; }
@@ -38,7 +38,7 @@ public sealed class Rule
             Id            = Guid.NewGuid(),
             Name          = name,
             Description   = description,
-            AppliesTo     = appliesTo,
+            ModuleId     = appliesTo,
             ConditionJson = JsonSerializer.Serialize(condition, _opts),
             Severity      = severity,
             IsActive      = true,
@@ -51,9 +51,9 @@ public sealed class Rule
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
 
-        if (!condition.IsValidForModule(AppliesTo))
+        if (!condition.IsValidForModule(ModuleId))
             throw new ArgumentException(
-                $"Condición inválida para módulo {AppliesTo}.", nameof(condition));
+                $"Condición inválida para módulo {ModuleId}.", nameof(condition));
 
         Name          = name;
         Description   = description;

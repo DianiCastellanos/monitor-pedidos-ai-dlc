@@ -15,7 +15,7 @@ public class AlertTemplateRendererTests
     {
         var alert = AlertTemplateRenderer.Render(Ctx(ModuleId.DbOrderChecker, CheckStatus.Critical, CauseCategory.Bd));
 
-        Assert.Contains("DbOrderChecker", alert.QuePaso);
+        Assert.Equal("test", alert.QuePaso);
         Assert.Equal("CRÍTICO", alert.SeveridadTexto);
         Assert.Contains("Base de Datos", alert.Donde);
     }

@@ -13,12 +13,17 @@ public interface IMonitoringService
 public sealed class MonitoringService : IMonitoringService
 {
     private readonly IIncidentService _incidents;
+    private readonly LastCheckStore   _lastCheckStore;
     private readonly ILogger<MonitoringService> _logger;
 
-    public MonitoringService(IIncidentService incidents, ILogger<MonitoringService> logger)
+    public MonitoringService(
+        IIncidentService incidents,
+        LastCheckStore lastCheckStore,
+        ILogger<MonitoringService> logger)
     {
-        _incidents = incidents;
-        _logger    = logger;
+        _incidents       = incidents;
+        _lastCheckStore  = lastCheckStore;
+        _logger          = logger;
     }
 
     public async Task RunCheckAsync(ICheckExecutor checker, CancellationToken ct = default)
@@ -33,6 +38,8 @@ public sealed class MonitoringService : IMonitoringService
             _logger.LogError(ex, "Checker {Type} threw during ExecuteAsync", checker.GetType().Name);
             return;
         }
+
+        _lastCheckStore.Results[checker.Module] = result;
 
         if (result.Status == CheckStatus.Ok)
         {

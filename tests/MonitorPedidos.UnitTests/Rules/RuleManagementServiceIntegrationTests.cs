@@ -38,7 +38,7 @@ public sealed class RuleManagementServiceIntegrationTests : IDisposable
         var rule = await _svc.CreateRuleAsync(
             "Test rule", "Descripción",
             ModuleId.DbOrderChecker,
-            RuleCondition.ForDbOrders(2, 1),
+            RuleCondition.ForDbOrders(120, 1),
             Severity.Critical,
             "user-1", "creación inicial");
 
@@ -59,13 +59,13 @@ public sealed class RuleManagementServiceIntegrationTests : IDisposable
         var rule = await _svc.CreateRuleAsync(
             "Original", "Desc original",
             ModuleId.DbOrderChecker,
-            RuleCondition.ForDbOrders(2, 1),
+            RuleCondition.ForDbOrders(120, 1),
             Severity.Critical,
             "user-1", "razón creación");
 
         await _svc.UpdateRuleAsync(rule.Id,
             "Actualizada", "Desc nueva",
-            RuleCondition.ForDbOrders(4, 2),
+            RuleCondition.ForDbOrders(240, 2),
             Severity.Warn,
             "user-1", "ajuste operativo");
 

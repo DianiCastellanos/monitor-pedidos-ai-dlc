@@ -13,6 +13,7 @@ public sealed class Incident
     public Severity          Severity              { get; private set; }
     public AlertMessage      Alert                 { get; private set; } = default!;
     public DateTimeOffset    OpenedAt              { get; private set; }
+    public DateTimeOffset?   UpdatedAt             { get; private set; }
     public DateTimeOffset?   ClosedAt              { get; private set; }
     public IncidentCloseType? CloseType            { get; private set; }
     public string?           ClosedByRole          { get; private set; }
@@ -60,6 +61,14 @@ public sealed class Incident
         CloseType            = IncidentCloseType.Manual;
         ClosedByRole         = closedByRole;
         ComentarioResolucion = comentario.Trim();
+    }
+
+    public void UpdateAlert(AlertMessage alert, Severity severity)
+    {
+        if (IsClosed) throw new DomainException("No se puede actualizar un incidente cerrado.");
+        Alert = alert;
+        Severity = severity;
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     // INV-U4-01: solo aplica a incidentes con Cause == Api (401 Token no reintenta)

@@ -48,7 +48,7 @@ public class SelectModel(ILogger<SelectModel> logger) : PageModel
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(claimsIdentity),
-            new AuthenticationProperties { IsPersistent = true });
+            new AuthenticationProperties { IsPersistent = false });
 
         logger.LogInformation("identidad_seleccionada | rol={Role}", selected.RoleName);
 

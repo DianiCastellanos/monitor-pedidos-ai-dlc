@@ -1,5 +1,6 @@
 @page "/incidents/weekly"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
 @inject IIncidentService IncidentService
 
 <PageTitle>Resumen Semanal de Incidentes</PageTitle>
@@ -27,6 +28,7 @@ else
     <table class="table table-hover table-sm">
         <thead class="table-dark">
             <tr>
+                <th>Módulo</th>
                 <th>Causa</th>
                 <th>Severidad</th>
                 <th>Incidentes</th>
@@ -37,7 +39,8 @@ else
             @foreach (var e in _entries)
             {
                 <tr>
-                    <td>@e.Cause</td>
+                    <td>@ModuleLabel(e.Module)</td>
+                    <td>@CauseLabel(e.Cause)</td>
                     <td><span class="badge @SeverityBadge(e.Severity)">@e.Severity</span></td>
                     <td>@e.Count</td>
                     <td>
@@ -55,7 +58,7 @@ else
         </tbody>
         <tfoot class="fw-bold">
             <tr>
-                <td colspan="2">Total</td>
+                <td colspan="3">Total</td>
                 <td>@_entries.Sum(e => e.Count)</td>
                 <td>@_entries.Sum(e => e.CandidatosReglaNueva)</td>
             </tr>
@@ -105,5 +108,27 @@ else
         Severity.Critical => "bg-danger",
         Severity.Warn     => "bg-warning text-dark",
         _                 => "bg-secondary"
+    };
+
+    private static string ModuleLabel(ModuleId m) => m switch
+    {
+        ModuleId.DbOrderChecker  => "M2 — BD Pedidos",
+        ModuleId.ApiChecker      => "M3 — APIs Externas",
+        ModuleId.DbHealthChecker => "M4 — BD Salud",
+        ModuleId.JobsMonitor     => "M11 — Jobs Sync",
+        ModuleId.SalesforceApi   => "M13 — Salesforce API",
+        ModuleId.MultivendeApi   => "M14 — Multivende API",
+        _                        => m.ToString()
+    };
+
+    private static string CauseLabel(CauseCategory c) => c switch
+    {
+        CauseCategory.Bd            => "Base de Datos",
+        CauseCategory.Job           => "Job",
+        CauseCategory.Api           => "API",
+        CauseCategory.Token         => "Token",
+        CauseCategory.DataQuality   => "Calidad de Datos",
+        CauseCategory.NoDeterminada => "No Determinada",
+        _                           => c.ToString()
     };
 }

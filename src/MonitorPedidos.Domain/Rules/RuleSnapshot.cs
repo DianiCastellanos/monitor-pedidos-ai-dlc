@@ -19,7 +19,7 @@ public sealed record RuleSnapshot(
 
     public static RuleSnapshot From(Rule rule) =>
         new(rule.Id, rule.Name, rule.Description,
-            rule.AppliesTo.ToString(),
+            rule.ModuleId.ToString(),
             rule.GetCondition(),
             rule.Severity.ToString(),
             rule.IsActive,

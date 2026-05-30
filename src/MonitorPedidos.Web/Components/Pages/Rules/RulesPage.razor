@@ -1,5 +1,6 @@
 @page "/rules"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Técnico")]
+@rendermode InteractiveServer
 @inject IRuleManagementService RuleService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthState
@@ -37,7 +38,7 @@ else
             {
                 <tr>
                     <td>@rule.Name</td>
-                    <td>@rule.AppliesTo</td>
+                    <td>@rule.ModuleId</td>
                     <td>@rule.Severity</td>
                     <td>
                         @if (rule.IsActive)

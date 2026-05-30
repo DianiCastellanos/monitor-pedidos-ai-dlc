@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MonitorPedidos.Domain.Dashboard;
 using MonitorPedidos.Domain.Incidents;
 using MonitorPedidos.Domain.Rules;
+using MonitorPedidos.Domain.Shared;
 using MonitorPedidos.Domain.Simulation;
 using MonitorPedidos.Infrastructure.Persistence.Configurations;
 
@@ -25,5 +26,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.ApplyConfiguration(new BrandSnapshotConfiguration());
         modelBuilder.ApplyConfiguration(new SimulatedOrderConfiguration());
         modelBuilder.ApplyConfiguration(new SimulatedJobStatusConfiguration());
+
+        modelBuilder.Entity<Rule>().HasData(new
+        {
+            Id            = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
+            Name          = "Ventana de pedidos — Salesforce/Multivende",
+            Description   = "Alerta si no hay pedidos en la ventana esperada para Salesforce o Multivende",
+            ModuleId      = ModuleId.DbOrderChecker,
+            ConditionJson = """{"WindowMinutes":10,"MinOrders":1,"Channels":["SALESFORCE","MULTIVENDE"]}""",
+            Severity      = Severity.Critical,
+            IsActive      = true,
+            CreatedAt     = new DateTimeOffset(2026, 5, 29, 0, 0, 0, TimeSpan.Zero),
+            UpdatedAt     = (DateTimeOffset?)null
+        });
     }
 }

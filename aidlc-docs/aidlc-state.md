@@ -78,5 +78,16 @@
 - [x] **Plans U7** — 4 archivos (Act1–Act4) ✅ generados 2026-05-24 (retrospectivos)
 - **Total plans**: 28/28 archivos ✅ COMPLETO
 
+### Iteraciones post-MVP
+- [x] **M2 Configurable por Reglas** — 2026-05-29. Ver `construction/rules-configurable-m2-design.md`.
+  - `RuleCondition`: nuevo campo `Channels`
+  - `Rule`: `AppliesTo` → `ModuleId`
+  - `DbOrderChecker`: lee `MinOrders` + `Channels` desde regla activa; conteo correcto vía `GroupBy(OrderId).ToDictionary()`
+  - Seed data insertada (WindowMinutes=10, MinOrders=1, Channels=["SALESFORCE","MULTIVENDE"])
+  - Bug corregido: `Distinct()` reemplazado por `GroupBy` para conteo real por canal
+- [x] **Dashboard timers separados** — Cards 30s, Brand Monitor 30s independientes
+- [x] **Labels humanas** — Módulo/Causa en HistoricPage, IncidentDetailPage, WeeklySummaryPage
+- [x] **@rendermode InteractiveServer** — Agregado a páginas que lo requieren (rules, incidents, weekly summary)
+
 ### OPERATIONS Phase
 - [ ] Placeholder (future)

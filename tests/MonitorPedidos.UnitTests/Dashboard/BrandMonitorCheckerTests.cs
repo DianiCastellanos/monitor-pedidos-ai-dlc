@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MonitorPedidos.Domain.Dashboard;
 using MonitorPedidos.Domain.Monitoring;
@@ -13,43 +14,58 @@ public class BrandMonitorCheckerTests
 {
     private static BrandMonitorChecker BuildChecker(
         ISimulatedOrderRepository simRepo,
-        IBrandSnapshotRepository  snapshotRepo)
-        => new BrandMonitorChecker(simRepo, snapshotRepo,
-            Mock.Of<ILogger<BrandMonitorChecker>>());
-
-    private static Mock<ISimulatedOrderRepository> SimRepo(int actual, int anterior)
+        IBrandSnapshotRepository  snapshotRepo,
+        int                       windowSeconds = 600)
     {
-        var mock          = new Mock<ISimulatedOrderRepository>();
-        var dictActual    = BrandSnapshot.Sites.ToDictionary(s => s, _ => actual);
-        var dictAnterior  = BrandSnapshot.Sites.ToDictionary(s => s, _ => anterior);
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Monitoring:BrandMonitorWindowSeconds"] = windowSeconds.ToString()
+            })
+            .Build();
+        return new BrandMonitorChecker(simRepo, snapshotRepo, cfg,
+            Mock.Of<ILogger<BrandMonitorChecker>>());
+    }
 
-        mock.SetupSequence(r => r.CountBySiteAsync(
+    private static Mock<ISimulatedOrderRepository> SimRepo(int actual, int? anterior = null)
+    {
+        var mock = new Mock<ISimulatedOrderRepository>();
+        var dictActual = BrandSnapshot.Sites.ToDictionary(s => s, _ => actual);
+        mock.Setup(r => r.CountBySiteAsync(
                 It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(dictActual)
-            .ReturnsAsync(dictAnterior);
-
+            .ReturnsAsync(dictActual);
         return mock;
     }
 
-    private static Mock<IBrandSnapshotRepository> SnapshotRepo()
+    private static Mock<IBrandSnapshotRepository> SnapshotRepo(
+        Action<BrandSnapshot>? onInsert = null,
+        int?                  previousPending = null)
     {
         var mock = new Mock<IBrandSnapshotRepository>();
-        mock.Setup(r => r.UpsertAsync(It.IsAny<BrandSnapshot>(), It.IsAny<CancellationToken>()))
+
+        mock.Setup(r => r.InsertAsync(It.IsAny<BrandSnapshot>(), It.IsAny<CancellationToken>()))
+            .Callback<BrandSnapshot, CancellationToken>((s, _) => onInsert?.Invoke(s))
             .Returns(Task.CompletedTask);
+
+        if (previousPending.HasValue)
+        {
+            var previous = BrandSnapshot.Create("Patprimo", previousPending.Value, null, SnapshotStatus.NoData);
+            mock.Setup(r => r.GetSnapshotBeforeAsync(
+                    It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(previous);
+        }
+
         return mock;
     }
 
     [Fact]
     public async Task ExecuteAsync_BacklogBaja_StatusGreen()
     {
-        // actual(5) < anterior(10) → backlog bajando → OK
         var captured = new List<BrandSnapshot>();
-        var snap = SnapshotRepo();
-        snap.Setup(r => r.UpsertAsync(It.IsAny<BrandSnapshot>(), It.IsAny<CancellationToken>()))
-            .Callback<BrandSnapshot, CancellationToken>((s, _) => captured.Add(s))
-            .Returns(Task.CompletedTask);
+        var snap = SnapshotRepo(onInsert: s => captured.Add(s), previousPending: 10);
 
-        var result = await BuildChecker(SimRepo(actual: 5, anterior: 10).Object, snap.Object).ExecuteAsync();
+        var result = await BuildChecker(SimRepo(actual: 5).Object, snap.Object)
+            .ExecuteAsync();
 
         Assert.Equal(CheckStatus.Ok, result.Status);
         Assert.All(captured, s => Assert.Equal(SnapshotStatus.Green, s.Status));
@@ -58,14 +74,11 @@ public class BrandMonitorCheckerTests
     [Fact]
     public async Task ExecuteAsync_BacklogIgual_StatusYellow()
     {
-        // actual(10) == anterior(10) → sin cambio → WARNING
         var captured = new List<BrandSnapshot>();
-        var snap = SnapshotRepo();
-        snap.Setup(r => r.UpsertAsync(It.IsAny<BrandSnapshot>(), It.IsAny<CancellationToken>()))
-            .Callback<BrandSnapshot, CancellationToken>((s, _) => captured.Add(s))
-            .Returns(Task.CompletedTask);
+        var snap = SnapshotRepo(onInsert: s => captured.Add(s), previousPending: 10);
 
-        var result = await BuildChecker(SimRepo(actual: 10, anterior: 10).Object, snap.Object).ExecuteAsync();
+        var result = await BuildChecker(SimRepo(actual: 10).Object, snap.Object)
+            .ExecuteAsync();
 
         Assert.Equal(CheckStatus.Ok, result.Status);
         Assert.All(captured, s => Assert.Equal(SnapshotStatus.Yellow, s.Status));
@@ -74,14 +87,11 @@ public class BrandMonitorCheckerTests
     [Fact]
     public async Task ExecuteAsync_BacklogCrece_StatusRed()
     {
-        // actual(20) > anterior(10) → backlog creciendo → CRITICAL
         var captured = new List<BrandSnapshot>();
-        var snap = SnapshotRepo();
-        snap.Setup(r => r.UpsertAsync(It.IsAny<BrandSnapshot>(), It.IsAny<CancellationToken>()))
-            .Callback<BrandSnapshot, CancellationToken>((s, _) => captured.Add(s))
-            .Returns(Task.CompletedTask);
+        var snap = SnapshotRepo(onInsert: s => captured.Add(s), previousPending: 10);
 
-        var result = await BuildChecker(SimRepo(actual: 20, anterior: 10).Object, snap.Object).ExecuteAsync();
+        var result = await BuildChecker(SimRepo(actual: 20).Object, snap.Object)
+            .ExecuteAsync();
 
         Assert.Equal(CheckStatus.Ok, result.Status);
         Assert.All(captured, s => Assert.Equal(SnapshotStatus.Red, s.Status));
@@ -90,14 +100,11 @@ public class BrandMonitorCheckerTests
     [Fact]
     public async Task ExecuteAsync_SinDatos_MuestraCerosYStatusYellow()
     {
-        // Sin datos en ninguna ventana → actual=0, anterior=0 → Yellow (igual)
         var captured = new List<BrandSnapshot>();
-        var snap = SnapshotRepo();
-        snap.Setup(r => r.UpsertAsync(It.IsAny<BrandSnapshot>(), It.IsAny<CancellationToken>()))
-            .Callback<BrandSnapshot, CancellationToken>((s, _) => captured.Add(s))
-            .Returns(Task.CompletedTask);
+        var snap = SnapshotRepo(onInsert: s => captured.Add(s), previousPending: 0);
 
-        var result = await BuildChecker(SimRepo(actual: 0, anterior: 0).Object, snap.Object).ExecuteAsync();
+        var result = await BuildChecker(SimRepo(actual: 0).Object, snap.Object)
+            .ExecuteAsync();
 
         Assert.Equal(CheckStatus.Ok, result.Status);
         Assert.False(result.RequiresIncident);

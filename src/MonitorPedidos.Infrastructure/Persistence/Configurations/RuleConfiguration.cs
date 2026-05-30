@@ -20,7 +20,8 @@ public sealed class RuleConfiguration : IEntityTypeConfiguration<Rule>
             .HasMaxLength(500)
             .IsRequired();
 
-        entity.Property(r => r.AppliesTo)
+        entity.Property(r => r.ModuleId)
+            .HasColumnName("AppliesTo")
             .HasConversion<string>()
             .HasMaxLength(50)
             .IsRequired();
@@ -47,7 +48,7 @@ public sealed class RuleConfiguration : IEntityTypeConfiguration<Rule>
             .HasColumnName("updated_at")
             .IsRequired(false);
 
-        entity.HasIndex(r => new { r.AppliesTo, r.IsActive })
+        entity.HasIndex(r => new { r.ModuleId, r.IsActive })
             .HasDatabaseName("IX_rules_Module_Active");
     }
 }

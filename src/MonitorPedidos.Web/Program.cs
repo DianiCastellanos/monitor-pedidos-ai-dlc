@@ -41,9 +41,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Serilog
 builder.AddSerilogLogging();
 
-// EF Core — PostgreSQL (Docker)
+// EF Core — SQL Server (Docker)
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Data Protection — persiste claves entre reinicios
 builder.Services.AddDataProtection()
@@ -85,6 +85,7 @@ builder.Services.AddSignalR(opts =>
 });
 builder.Services.AddSingleton<AlertBroadcaster>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
+builder.Services.AddSingleton<LastCheckStore>();
 builder.Services.AddScoped<IBrandSnapshotRepository, BrandSnapshotRepository>();
 builder.Services.AddScoped<BrandMonitorChecker>();
 builder.Services.AddScoped<ICheckExecutor>(sp => sp.GetRequiredService<BrandMonitorChecker>());
@@ -110,7 +111,14 @@ builder.Services.AddHostedService<MonitoringSchedulerService>();
 // ── U7: Simulation & Red-Teaming ─────────────────────────────────────────
 builder.Services.Configure<SimulationOptions>(
     builder.Configuration.GetSection(SimulationOptions.Section));
-builder.Services.AddScoped<IOrderSource,                  SimulatedOrderRepository>();
+
+// M2 — IOrderSource: production (read-only) or simulated fallback
+var prodConn = builder.Configuration.GetConnectionString("ProductionDb");
+if (!string.IsNullOrEmpty(prodConn))
+    builder.Services.AddScoped<IOrderSource>(_ => new ProductionOrderRepository(prodConn));
+else
+    builder.Services.AddScoped<IOrderSource, SimulatedOrderRepository>();
+
 builder.Services.AddScoped<ISimulatedOrderRepository,     SimulatedOrderRepository>();
 builder.Services.AddScoped<IJobStatusSource,              SimulatedJobStatusRepository>();
 builder.Services.AddScoped<ISimulatedJobStatusRepository, SimulatedJobStatusRepository>();

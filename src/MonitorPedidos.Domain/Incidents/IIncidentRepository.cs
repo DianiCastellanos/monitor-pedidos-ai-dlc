@@ -21,5 +21,8 @@ public interface IIncidentRepository
 
     Task<int> PurgeExpiredAsync(int retentionDays, CancellationToken ct = default);
 
+    Task CloseAllByModuleExceptAsync(
+        ModuleId module, Guid exceptId, CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }

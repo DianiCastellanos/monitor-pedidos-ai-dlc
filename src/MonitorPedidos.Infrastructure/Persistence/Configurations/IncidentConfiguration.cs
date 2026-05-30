@@ -30,6 +30,7 @@ public sealed class IncidentConfiguration : IEntityTypeConfiguration<Incident>
             .IsRequired();
 
         entity.Property(i => i.OpenedAt).IsRequired();
+        entity.Property(i => i.UpdatedAt);
         entity.Property(i => i.ClosedAt);
 
         entity.Property(i => i.CloseType)
@@ -80,7 +81,7 @@ public sealed class IncidentConfiguration : IEntityTypeConfiguration<Incident>
 
         // Índice único filtrado: garantiza máximo 1 incidente abierto por módulo (BR-INC-01)
         entity.HasIndex(i => i.Module)
-            .HasFilter("\"ClosedAt\" IS NULL")
+            .HasFilter("[ClosedAt] IS NULL")
             .IsUnique()
             .HasDatabaseName("IX_incidents_Module_Open");
     }
