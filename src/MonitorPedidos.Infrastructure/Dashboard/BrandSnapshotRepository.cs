@@ -42,6 +42,15 @@ public sealed class BrandSnapshotRepository(
             .ToList();
     }
 
+    public async Task<BrandSnapshot?> GetLatestAsync(string site, CancellationToken ct = default)
+    {
+        return await context.BrandSnapshots
+            .AsNoTracking()
+            .Where(s => s.Site == site)
+            .OrderByDescending(s => s.CheckedAt)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task<BrandSnapshot?> GetSnapshotBeforeAsync(
         string site, DateTime before, CancellationToken ct = default)
     {

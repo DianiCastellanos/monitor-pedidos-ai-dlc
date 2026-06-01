@@ -43,7 +43,7 @@ Antes de las preguntas, este es el estado confirmado desde Inception:
 | Decisión ya tomada | Fuente |
 |-------------------|--------|
 | `ICheckExecutor` pattern con `IEnumerable<ICheckExecutor>` DI | ADR-U3-02 |
-| `MonitoringSchedulerService` como `BackgroundService` con dos timers (5 min / 10 min) | components.md |
+| `MonitoringSchedulerService` como `BackgroundService` con tres timers configurables (prod: 5 min / 10 min / 2 min; dev: 0.5 min / 1 min / 30 seg) | components.md |
 | `BrandMonitorChecker` NO genera incidentes — solo actualiza `brand_snapshots` | requirements.md RF-31 |
 
 ---

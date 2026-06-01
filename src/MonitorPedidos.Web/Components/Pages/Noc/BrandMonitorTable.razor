@@ -1,0 +1,117 @@
+@using MonitorPedidos.Domain.Dashboard
+
+<div style="background:#1e1e2e; border-radius:12px; padding:1.25rem; height:100%;
+            box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+
+    <h4 style="color:#fff; font-size:1.3rem; font-weight:600; margin-bottom:0.5rem;
+              border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.6rem;">
+        Brand Monitor
+        @if (_snapshots.Any() || _liveCounts is not null)
+        {
+            var total = _snapshots.Any()
+                ? _snapshots.Sum(s => s.PendingCountCurrent)
+                : _liveCounts!.Values.Sum();
+            <span style="font-size:0.85rem; font-weight:500; color:#9ca3af; margin-left:0.5rem;">
+                @total pendientes totales
+            </span>
+        }
+    </h4>
+
+    @if (IsLiveFallback && _liveCounts is not null)
+    {
+        <div style="background:rgba(234,179,8,0.12); border-radius:6px; padding:0.3rem 0.7rem;
+                    margin-bottom:0.8rem; font-size:0.8rem; color:#eab308;">
+            ⚠ Tiempo real · Sin historial (BD no disponible)
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+            @foreach (var kv in _liveCounts)
+            {
+                <div style="background:rgba(255,255,255,0.05); border-radius:8px; padding:1rem;
+                            text-align:center; border-left:4px solid #eab308;">
+                    <div style="color:#fff; font-size:1.2rem; font-weight:600; margin-bottom:0.3rem;">
+                        @kv.Key
+                    </div>
+                    <div style="font-size:2.4rem; font-weight:700; color:#eab308; line-height:1.2;">
+                        @kv.Value
+                    </div>
+                    <div style="color:#9ca3af; font-size:0.85rem; margin-top:0.25rem;">
+                        pendientes por descargar
+                    </div>
+                    <div style="color:#6b7280; font-size:0.78rem; margin-top:0.1rem;">— ant.</div>
+                </div>
+            }
+        </div>
+    }
+    else if (_snapshots.Any())
+    {
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+            @foreach (var s in _snapshots)
+            {
+                var c = SnapshotStatusColor(s.Status);
+                var arrow = TrendArrow(s);
+                var prevLabel = s.PendingCountPrevious.HasValue
+                    ? $"ant: {s.PendingCountPrevious.Value}"
+                    : "primer check";
+                <div style="background:rgba(255,255,255,0.05); border-radius:8px; padding:1rem;
+                            text-align:center; border-left:4px solid @c;">
+                    <div style="color:#fff; font-size:1.2rem; font-weight:600; margin-bottom:0.3rem;">
+                        @s.Site
+                    </div>
+                    <div style="font-size:2.4rem; font-weight:700; color:@c; line-height:1.2;">
+                        @s.PendingCountCurrent
+                        <span style="font-size:1.4rem;">@arrow</span>
+                    </div>
+                    <div style="color:#9ca3af; font-size:0.85rem; margin-top:0.25rem;">
+                        pendientes por descargar
+                    </div>
+                    <div style="color:#6b7280; font-size:0.78rem; margin-top:0.1rem;">@prevLabel</div>
+                    <div style="color:#6b7280; font-size:0.75rem; margin-top:0.3rem;">
+                        @s.CheckedAt.ToLocalTime().ToString("HH:mm")
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p style="color:#9ca3af; font-size:0.9rem; margin-bottom:0.8rem;">Sin datos aún — esperando primer ciclo del checker</p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+            @foreach (var site in BrandSnapshot.Sites)
+            {
+                <div style="background:rgba(255,255,255,0.05); border-radius:8px; padding:1rem;
+                            text-align:center; border-left:4px solid #6b7280;">
+                    <div style="color:#fff; font-size:1.2rem; font-weight:600; margin-bottom:0.3rem;">@site</div>
+                    <div style="font-size:2.4rem; font-weight:700; color:#6b7280; line-height:1.2;">—</div>
+                    <div style="color:#9ca3af; font-size:0.85rem; margin-top:0.25rem;">pendientes por descargar</div>
+                    <div style="color:#6b7280; font-size:0.78rem; margin-top:0.1rem;">sin datos</div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<BrandSnapshot>?        Snapshots    { get; set; }
+    [Parameter] public IReadOnlyDictionary<string, int>?   LiveCounts   { get; set; }
+    [Parameter] public bool                                 IsLiveFallback { get; set; }
+    [Parameter] public int                                  PendingThreshold { get; set; } = 20;
+
+    private IReadOnlyList<BrandSnapshot>      _snapshots  => Snapshots  ?? [];
+    private IReadOnlyDictionary<string, int>? _liveCounts => LiveCounts;
+
+    private static string SnapshotStatusColor(SnapshotStatus st) => st switch
+    {
+        SnapshotStatus.Green  => "#22c55e",
+        SnapshotStatus.Yellow => "#eab308",
+        SnapshotStatus.Red    => "#ef4444",
+        _                     => "#6b7280"
+    };
+
+    private static string TrendArrow(BrandSnapshot s)
+    {
+        if (!s.PendingCountPrevious.HasValue) return "";
+        if (s.PendingCountCurrent < s.PendingCountPrevious.Value) return "↓";
+        if (s.PendingCountCurrent > s.PendingCountPrevious.Value) return "↑";
+        return "=";
+    }
+}

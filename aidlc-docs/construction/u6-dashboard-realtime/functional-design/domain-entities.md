@@ -3,7 +3,7 @@
 **Unidad:** U6 — Dashboard & Real-Time
 **Stage:** Construction → Functional Design
 **Fecha:** 2026-05-24
-**Versión:** 1.1 (2026-05-24 — §4 actualizado: RuleCondition/ModuleId son definición primaria en U5 v1.1; referencias aquí actualizadas)
+**Versión:** 1.2 (2026-05-31 — §3 actualizado: BrandSnapshot es append-only con histórico real IT3; `SnapshotStatus.NoData` IT3; §5 IBrandSnapshotRepository actualizado IT3; §6 IBrandMonitorService + GetLiveCountsAsync IT10)
 
 ---
 
@@ -25,30 +25,33 @@ El bounded context `Dashboard` es la capa de presentación del sistema. Consume 
 
 ---
 
-## §3 Nueva entidad: `BrandSnapshot`
+## §3 Entidad actualizada: `BrandSnapshot` — versión IT3/IT7
 
 ```csharp
 // Entidad liviana — no aggregate root
-// Representa el estado de pedidos pendientes de un site en el último chequeo
+// Representa un snapshot puntual de pedidos pendientes de un site
+// Tabla: append-only — nunca UPDATE, nunca DELETE (excepto retención futura)
 public sealed class BrandSnapshot
 {
     public int     Id                   { get; private set; }
-    public string  Site                 { get; private set; }  // "Patprimo" | "SevenSeven" | "Atmos" | "Ostu"
-    public int     PendingCountCurrent  { get; private set; }  // pedidos pendientes ahora
-    public int     PendingCountPrevious { get; private set; }  // pedidos pendientes hace 10 min
+    public string  Site                 { get; private set; }  // "PatPrimo" | "SevenSeven" | "Atmos" | "Ostu"
+    public int     PendingCountCurrent  { get; private set; }  // pedidos pendientes en este momento
+    public int?    PendingCountPrevious { get; private set; }  // snapshot anterior para comparar (nullable — NoData si null)
     public DateTime CheckedAt           { get; private set; }
-    public SnapshotStatus Status        { get; private set; }  // Green | Yellow | Red
+    public SnapshotStatus Status        { get; private set; }  // Green | Yellow | Red | NoData
+
+    // Sites activos Colombia — orden canónico
+    public static readonly string[] Sites = ["PatPrimo", "SevenSeven", "Ostu", "Atmos"];
 
     private BrandSnapshot() { }
 
-    // Crea o actualiza snapshot para un site
-    public static BrandSnapshot Upsert(
+    // Factory — IT3: usa Create (insert), no Upsert (overwrite)
+    public static BrandSnapshot Create(
         string site,
         int currentPending,
-        int previousPending,
-        int dropThreshold)
+        int? previousPending,
+        SnapshotStatus status)
     {
-        var status = DetermineStatus(currentPending, previousPending, dropThreshold);
         return new BrandSnapshot
         {
             Site                 = site,
@@ -58,23 +61,34 @@ public sealed class BrandSnapshot
             Status               = status
         };
     }
-
-    private static SnapshotStatus DetermineStatus(int current, int previous, int threshold)
-    {
-        var drop = previous - current;
-        if (drop >= threshold) return SnapshotStatus.Green;   // bajó suficiente → 🟢
-        if (drop > 0)          return SnapshotStatus.Yellow;  // bajó poco → 🟡
-        return SnapshotStatus.Red;                            // igual o subió → 🔴
-    }
 }
 
-public enum SnapshotStatus { Green, Yellow, Red }
+// IT3: NoData agregado — primer snapshot sin histórico para comparar
+public enum SnapshotStatus { Green, Yellow, Red, NoData }
+```
+
+**Cambios vs diseño original:**
+- `PendingCountPrevious` ahora es `int?` (nullable) — `null` cuando no hay histórico (`NoData`)
+- `SnapshotStatus.NoData` — primer snapshot de un site, sin comparación posible
+- Factory `Create` en lugar de `Upsert` — la tabla es append-only con historial real
+- `Sites` es un array estático con los 4 sites válidos de Colombia (IT7: "PatPrimo" con P mayúscula)
+- El estado lo determina `BrandMonitorChecker.DetermineStatus(current, previous)` — no la entidad
+
+**Reglas de determinación de estado (en BrandMonitorChecker):**
+```csharp
+private static SnapshotStatus DetermineStatus(int current, int previous)
+{
+    if (current < previous) return SnapshotStatus.Green;   // bajaron
+    if (current == previous) return SnapshotStatus.Yellow; // igual
+    return SnapshotStatus.Red;                             // subieron
+}
 ```
 
 **Invariantes:**
-- `Site` es uno de los 4 valores válidos — validado en `BrandMonitorChecker`
-- La tabla `brand_snapshots` tiene exactamente 4 filas (UPSERT por site) — sin historial creciente
-- `PendingCountCurrent` y `PendingCountPrevious` son siempre >= 0
+- `Site` es uno de los 4 valores de `BrandSnapshot.Sites`
+- `brand_snapshots` es append-only — `InsertAsync` nunca `UpsertAsync`
+- `PendingCountCurrent` siempre >= 0
+- `PendingCountPrevious` es null solo en el primer snapshot de un site (hasta que hay un snapshot anterior en la ventana de comparación)
 
 ---
 
@@ -94,37 +108,55 @@ U6 usa estos contratos sin redefinirlos. `BrandMonitorChecker` llama `IRuleRepos
 
 ---
 
-## §5 Nuevas interfaces de repositorio
+## §5 Interfaces de repositorio — actualizadas IT3
 
 ### `IBrandSnapshotRepository`
 
 ```csharp
 public interface IBrandSnapshotRepository
 {
-    // UPSERT por site — sobrescribe la fila existente; crea si no existe
-    Task UpsertAsync(BrandSnapshot snapshot, CancellationToken ct);
+    // INSERT siempre — append-only (IT3: reemplaza UpsertAsync)
+    Task InsertAsync(BrandSnapshot snapshot, CancellationToken ct);
 
-    // Retorna las 4 filas (uno por site)
-    Task<IReadOnlyList<BrandSnapshot>> GetAllAsync(CancellationToken ct);
+    // Último snapshot de cada site (agrupación en memoria — workaround EF Core GroupBy)
+    Task<IReadOnlyList<BrandSnapshot>> GetLatestPerSiteAsync(CancellationToken ct);
+
+    // Snapshot más reciente de un site en o antes de un timestamp (para comparación de tendencia)
+    Task<BrandSnapshot?> GetLatestAsync(string site, CancellationToken ct);
+
+    // Snapshot más cercano a un momento dado hacia atrás (para comparación con ventana configurable)
+    Task<BrandSnapshot?> GetSnapshotBeforeAsync(string site, DateTime before, CancellationToken ct);
 }
 ```
 
-**Invariante:** Sin `Delete`, sin historial. La tabla `brand_snapshots` siempre tiene <= 4 filas.
+**Invariante:** Sin `Delete`, sin `Update`. `brand_snapshots` crece con el tiempo. Retención futura (Paso 7 diferido): `DeleteOlderThanAsync(48h)`.
 
 ---
 
-## §6 Nuevas interfaces de servicio
+## §6 Interfaces de servicio — actualizadas IT3/IT10
 
 ### `IBrandMonitorService`
 
 ```csharp
 public interface IBrandMonitorService
 {
+    // Lectura desde AppDb — snapshot más reciente por site
     Task<IReadOnlyList<BrandSnapshot>> GetCurrentSnapshotsAsync(CancellationToken ct);
+
+    // Forzar refresh desde Salesforce y persistir (usado por botón manual cuando BD disponible)
+    Task SimulateAndRefreshAsync(CancellationToken ct);
+
+    // IT10 — Live fallback: llama Salesforce directamente sin BD, retorna conteos por site
+    // Retorna null si Salesforce no responde o falla
+    Task<IReadOnlyDictionary<string, int>?> GetLiveCountsAsync(CancellationToken ct);
 }
 ```
 
-Servicio de aplicación delgado — solo lectura desde repositorio para la página Blazor.
+**Regla de uso de `GetLiveCountsAsync`:**
+- Se usa como fallback cuando `GetCurrentSnapshotsAsync` falla (BD no disponible)
+- En ciclos automáticos de UI: se consulta `LastCheckStore[BrandMonitor].Details` primero (sin costo)
+- `GetLiveCountsAsync` solo se invoca si `LastCheckStore` está vacío Y el usuario hizo clic en "↻ Actualizar"
+- Nunca se invoca en ciclos automáticos de timer — solo en acción manual
 
 ### `INotificationService` (implementación concreta reemplaza stub U3)
 

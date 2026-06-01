@@ -13,12 +13,19 @@ public sealed class JobsChecker : ICheckExecutor
 
     public async Task<CheckResult> ExecuteAsync(CancellationToken ct = default)
     {
-        var jobs   = await _jobSource.GetCurrentStatusAsync(ct);
-        var failed = jobs.Where(j => !j.IsRunning || !j.LastExecutionSucceeded).ToList();
+        try
+        {
+            var jobs   = await _jobSource.GetCurrentStatusAsync(ct);
+            var failed = jobs.Where(j => !j.IsRunning || !j.LastExecutionSucceeded).ToList();
 
-        return failed.Count == 0
-            ? CheckResult.Ok($"{jobs.Count} job(s) activos y saludables.")
-            : CheckResult.Critical(
-                $"{failed.Count} job(s) fallido(s): {string.Join(", ", failed.Select(j => j.JobName))}");
+            return failed.Count == 0
+                ? CheckResult.Ok($"{jobs.Count} job(s) activos y saludables.")
+                : CheckResult.Critical(
+                    $"{failed.Count} job(s) fallido(s): {string.Join(", ", failed.Select(j => j.JobName))}");
+        }
+        catch (Exception ex)
+        {
+            return CheckResult.Critical($"Sin acceso a jobs: {ex.Message[..Math.Min(60, ex.Message.Length)]}");
+        }
     }
 }

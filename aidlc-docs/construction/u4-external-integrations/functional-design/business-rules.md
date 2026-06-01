@@ -3,7 +3,7 @@
 **Unidad:** U4 — External Integrations
 **Stage:** Construction → Functional Design
 **Fecha:** 2026-05-23
-**Versión:** 1.0
+**Versión:** 1.1 (2026-05-31 — BR-API-01 actualizado: 5 min IT5; BR-API-05 nuevo: solo disponibilidad IT8; BR-SCHED-05 actualizado: 5 min)
 
 ---
 
@@ -11,9 +11,10 @@
 
 | ID | Regla | Implementación | Story | RF |
 |----|-------|---------------|-------|----|
-| BR-API-01 | Los ApiCheckers (`SalesforceApiChecker`, `MultivendeApiChecker`) se ejecutan cada **10 minutos** via un segundo `PeriodicTimer` independiente del de U3 | `MonitoringSchedulerService` — `apiTimer = new PeriodicTimer(10 min)` | US-10 | RF-03 |
+| BR-API-01 | Los ApiCheckers (`SalesforceApiChecker`, `MultivendeApiChecker`) se ejecutan cada **5 minutos** en producción (1 min en dev) via `PeriodicTimer` independiente. Configurable en `Monitoring:ApiCheckerIntervalMinutes` | `MonitoringSchedulerService` — `apiTimer = new PeriodicTimer(ApiCheckerIntervalMinutes)` | US-10 | RF-03 |
 | BR-API-02 | Cada API tiene su propio checker, su propio `ModuleId` y su propio cliente tipado | `SalesforceApiChecker` → `ModuleId.SalesforceApi`; `MultivendeApiChecker` → `ModuleId.MultivendeApi` | US-10 | RF-03 |
-| BR-API-03 | Los clientes de API operan en **solo lectura** — únicamente métodos HTTP GET. Nunca POST, PUT, PATCH ni DELETE | `SalesforceClient.PingOrdersAsync` y `MultivendeClient.PingOrdersAsync` usan solo `HttpClient.GetAsync` | US-10 | RF-07 |
+| BR-API-03 | Los clientes de API operan en **solo lectura**. `SalesforceClient` usa POST a `order_search` (requerido por OCAPI — es una consulta, no una mutación). `MultivendeClient` usa GET. Nunca PUT, PATCH ni DELETE | `SalesforceClient.SearchPendingOrdersAsync` — HttpPost; `MultivendeClient` — HttpGet | US-10 | RF-07 |
+| BR-API-05 | `SalesforceApiChecker` evalúa **solo disponibilidad** del API (Ok/Critical). No evalúa volumen de pedidos — esa responsabilidad pertenece a `BrandMonitorChecker` (IT8) | `SalesforceApiChecker.ExecuteAsync` — Ok si responde HTTP 200 con body válido, Critical si no responde | US-10 | RF-03 |
 | BR-API-04 | El timeout por checker de API usa el mismo mecanismo que U3 (`CancellationTokenSource.CreateLinkedTokenSource` + `CancelAfter`) | Heredado de ADR-U3-01 — `MonitoringSchedulerService.RunCheckAsync` | US-10 | RF-03 |
 
 ---
@@ -65,7 +66,7 @@
 | ID | Regla | Implementación | Story | RF |
 |----|-------|---------------|-------|----|
 | BR-SCHED-04 | Los `ApiCheckers` corren en un `PeriodicTimer` **separado** al de los `MonitorCheckers` de U3 | `MonitoringSchedulerService` — `apiTimer = new PeriodicTimer(10 min)` paralelo a `monitorTimer` | US-10 | RF-03 |
-| BR-SCHED-05 | La cadencia de los ApiCheckers es configurable: `Monitoring:ApiCheckerIntervalMinutes` (default: **10**) | `_config.GetValue("Monitoring:ApiCheckerIntervalMinutes", 10)` | US-10 | RF-03 |
+| BR-SCHED-05 | La cadencia de los ApiCheckers es configurable: `Monitoring:ApiCheckerIntervalMinutes` (default: **5** prod, **1** dev) | `_config.GetValue("Monitoring:ApiCheckerIntervalMinutes", 5)` | US-10 | RF-03 |
 
 ---
 

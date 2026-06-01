@@ -3,7 +3,7 @@
 **Unidad:** U4 — External Integrations
 **Stage:** Construction → Functional Design
 **Fecha:** 2026-05-23
-**Versión:** 1.0
+**Versión:** 1.1 (2026-05-31 — §3 actualizado: PingOrdersAsync → SearchPendingOrdersAsync IT5; Timer2 10 min → 5 min; §8 Salesforce OAuth2 Account Manager; §8 trazabilidad actualizada)
 
 ---
 
@@ -34,25 +34,28 @@ MonitoringSchedulerService — segundo PeriodicTimer (10 min)
     cada checker con Linked CancellationToken + timeout (ADR-U3-01)
 ```
 
-Los dos timers corren en `ExecuteAsync` del mismo `MonitoringSchedulerService`:
+Los timers corren en `ExecuteAsync` del mismo `MonitoringSchedulerService`:
 
 ```
-Timer 1 (5 min)  → DbOrderChecker, DbHealthChecker, JobsChecker  [U3]
-Timer 2 (10 min) → SalesforceApiChecker, MultivendeApiChecker     [U4]
+Timer 1 (5 min prod / 30s dev)  → DbOrderChecker, DbHealthChecker, JobsChecker  [U3]
+Timer 2 (5 min prod / 1 min dev) → SalesforceApiChecker, MultivendeApiChecker    [U4]
+Timer 3 dinámico (3 min prod)    → BrandMonitorChecker                           [U4/Brand Monitor]
 ```
 
 ---
 
-## §3 Flujo 2 — Verificación de API con reintentos Polly (caso 5xx/timeout)
+## §3 Flujo 2 — Verificación de API con reintentos Polly (caso 5xx/timeout) — actualizado IT5/IT8
+
+A partir de IT5, `SalesforceApiChecker` usa `SearchPendingOrdersAsync` (POST OCAPI) en lugar de `PingOrdersAsync`. A partir de IT8, `SalesforceApiChecker` solo evalúa disponibilidad — Ok si responde, Critical si no.
 
 ```
 SalesforceApiChecker.ExecuteAsync(ct)
     |
-    ISalesforceClient.PingOrdersAsync(ct)
+    ISalesforceClient.SearchPendingOrdersAsync(ct)
         |
         [Polly intercepta — política ApiRetryPolicy]
         |
-        Intento 1: GET /orders?$top=1
+        Intento 1: POST order_search
             |
             +-- [HTTP 200] → ApiPingResult.Success → Polly retorna → CheckResult.Ok
             |
@@ -209,11 +212,14 @@ IncidentDetailPage (U2 — actualizado en U4)
 
 ---
 
-## §8 Trazabilidad de flujos
+## §8 Trazabilidad de flujos — actualizado IT5/IT8
+
+> IT5: `PingOrdersAsync` → `SearchPendingOrdersAsync` (POST OCAPI). IT8: `SalesforceApiChecker` solo disponibilidad.
+> Autenticación: OAuth2 Account Manager (`https://account.demandware.com/dwsso/oauth2/access_token`, client_credentials S2S).
 
 | Flujo | Story | RF | BR |
 |-------|-------|----|----|
-| Ciclo 10 min APIs (§2) | US-10 | RF-03 | BR-API-01, BR-SCHED-04 |
+| Ciclo 5 min APIs (§2) | US-10 | RF-03 | BR-API-01, BR-SCHED-04 |
 | Reintentos Polly 5xx/timeout (§3) | US-10, US-16 | RF-06 | BR-RETRY-01, BR-RETRY-02 |
 | 401 sin reintento → Token (§4) | US-10 | RF-07 | BR-TOKEN-01, BR-TOKEN-02 |
 | Credenciales User Secrets (§5) | — | — | BR-CRED-01, BR-CRED-02 |

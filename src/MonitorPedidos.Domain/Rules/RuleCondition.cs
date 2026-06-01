@@ -8,12 +8,15 @@ public sealed record RuleCondition(
     int?     LatencyWarnMs,
     int?     LatencyCriticalMs,
     int?     PendingDropThreshold,
+    int?     PollIntervalSeconds         = null,
+    int?     SnapshotMinIntervalSeconds  = null,
+    int?     ComparisonWindowSeconds     = null,
     int?     WindowMinutes = null,
     string[]? Channels      = null
 )
 {
     public static RuleCondition ForDbOrders(int windowMinutes, int minOrders, string[]? channels = null)
-        => new(null, minOrders, null, null, null, windowMinutes, channels);
+        => new(null, minOrders, null, null, null, null, null, null, windowMinutes, channels);
 
     public static RuleCondition ForDbHealth(int latencyWarnMs, int latencyCriticalMs)
         => new(null, null, latencyWarnMs, latencyCriticalMs, null);
@@ -21,8 +24,13 @@ public sealed record RuleCondition(
     public static RuleCondition ForJobs()
         => new(null, null, null, null, null);
 
-    public static RuleCondition ForBrandMonitor(int pendingDropThreshold)
-        => new(null, null, null, null, pendingDropThreshold);
+    public static RuleCondition ForBrandMonitor(
+        int pendingDropThreshold,
+        int? pollIntervalSeconds = null,
+        int? snapshotMinIntervalSeconds = null,
+        int? comparisonWindowSeconds = null)
+        => new(null, null, null, null, pendingDropThreshold,
+               pollIntervalSeconds, snapshotMinIntervalSeconds, comparisonWindowSeconds);
 
     public bool IsValidForModule(ModuleId module) => module switch
     {

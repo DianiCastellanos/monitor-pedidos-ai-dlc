@@ -7,6 +7,8 @@
 @inject IBrandMonitorService BrandMonitorService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject LastCheckStore LastCheckStore
+@inject ILogger<Dashboard> _logger
+@inject IConfiguration _config
 
 <PageTitle>Dashboard — MonitorPedidos</PageTitle>
 
@@ -53,13 +55,37 @@
                             <span class="rounded-circle bg-warning shadow-sm" style="width:2.5rem;height:2.5rem;display:inline-block"></span>
                         </div>
                     }
+                    else if (d.Color == "secondary")
+                    {
+                        <div class="d-flex justify-content-center mb-2">
+                            <span class="rounded-circle bg-secondary shadow-sm" style="width:2.5rem;height:2.5rem;display:inline-block"></span>
+                        </div>
+                    }
                     else
                     {
                         <div class="d-flex justify-content-center mb-2">
                             <span class="rounded bg-success shadow-sm d-inline-flex align-items-center justify-content-center text-white" style="width:2.5rem;height:2.5rem;font-size:1.4rem;font-weight:700">&#10004;</span>
                         </div>
                     }
-                    @if (d.Channels is not null)
+                    @if (d.ApiDetails is not null)
+                    {
+                        <div class="mt-1">
+                            @foreach (var api in d.ApiDetails)
+                            {
+                                <div class="px-1" style="font-size:0.7rem">
+                                    <div class="d-flex justify-content-between align-items-baseline">
+                                        <span class="text-muted">@api.Name</span>
+                                        <span class="@ApiStatusClass(api.BadgeColor) fw-semibold ms-1">@ApiStatusIcon(api.BadgeColor) @api.StatusLabel</span>
+                                    </div>
+                                    @if (api.Detail is not null)
+                                    {
+                                        <div class="text-muted text-end" style="font-size:0.65rem;margin-top:-1px">(@api.Detail)</div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (d.Channels is not null)
                     {
                         <div class="mt-1">
                             @foreach (var ch in d.Channels)
@@ -81,7 +107,13 @@
     }
 </div>
 
-@if (_openIncidents.Any())
+@if (_incidentsFallback)
+{
+    <div class="alert alert-warning py-2 mb-4">
+        <strong>BD no disponible</strong> — no se pueden cargar incidentes. Estados derivados de última verificación.
+    </div>
+}
+else if (_openIncidents.Any())
 {
     <h5 class="mb-2">Alertas Activas <span class="badge bg-danger ms-1">@_openIncidents.Count</span></h5>
     <div class="table-responsive mb-4">
@@ -133,21 +165,42 @@ else
 }
 
 <p class="text-muted small mb-1">
+    @{
+        var nextBdCheck = DateTimeOffset.UtcNow.AddSeconds(_brandCountdown).ToLocalTime();
+    }
     @if (_brandLastUpdate is not null)
     {
-        <span>Brand Monitor actualizado: <strong>@_brandLastUpdate.Value.ToLocalTime().ToString("HH:mm:ss")</strong> &nbsp;·&nbsp; @FormatElapsedAlt(_brandLastUpdate.Value) · próx. en <strong>@FormatCountdown(_brandCountdown)</strong></span>
+        <span>Actualizado: <strong>@_brandLastUpdate.Value.ToLocalTime().ToString("hh:mm tt")</strong> &nbsp;·&nbsp; Próx. verificación: <strong>@nextBdCheck.ToString("hh:mm tt")</strong> &nbsp;·&nbsp; <span class="text-muted">Checker Salesforce: cada @BrandCheckerIntervalMinutes min</span></span>
+    }
+    else if (_brandDbUnavailable)
+    {
+        <span><span class="text-warning">BD no disponible</span> &nbsp;·&nbsp; Próx. verificación: <strong>@nextBdCheck.ToString("hh:mm tt")</strong> &nbsp;·&nbsp; <span class="text-muted">Checker Salesforce: cada @BrandCheckerIntervalMinutes min</span></span>
+    }
+    else if (_brandLoading)
+    {
+        <span>Brand Monitor: iniciando...</span>
     }
     else
     {
-        <span>Cargando...</span>
+        <span>Sin datos aún &nbsp;·&nbsp; Próx. verificación: <strong>@nextBdCheck.ToString("hh:mm tt")</strong></span>
     }
 </p>
 
 <div class="d-flex align-items-center mb-2">
     <h5 class="mb-0">Brand Monitor</h5>
     <span class="text-muted small ms-2">— pedidos pendientes por marca</span>
-    <button class="btn btn-outline-secondary btn-sm ms-auto" @onclick="RefreshBrandAsync">&#8635; Actualizar</button>
+    <button class="btn btn-outline-secondary btn-sm ms-auto" @onclick="() => RefreshBrandAsync(true)" disabled="@(_brandLoading || _brandRefreshing)">
+        @if (_brandRefreshing) { <span class="spinner-border spinner-border-sm me-1"></span><span>Actualizando...</span> }
+        else { <span>&#8635; Actualizar</span> }
+    </button>
 </div>
+
+@if (_brandStale)
+{
+    <div class="alert alert-warning py-2 mb-2">
+        ⚠ <strong>Datos desactualizados</strong> · BD no disponible — mostrando última información conocida
+    </div>
+}
 
 @if (_brandLoading)
 {
@@ -155,7 +208,132 @@ else
 }
 else if (!_brandSnapshots.Any())
 {
-    <div class="alert alert-secondary py-2">Sin datos aún. Espere el primer ciclo del scheduler (10 min).</div>
+    @if (_brandLiveManual && _brandLiveCounts is not null)
+    {
+        <div class="alert alert-warning py-2 mb-2">
+            ⚠ <strong>Tiempo real</strong> · BD no disponible — datos consultados ahora en Salesforce, sin historial
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Marca</th>
+                        <th class="text-center">Pendientes actuales</th>
+                        <th class="text-center">Anterior</th>
+                        <th class="text-center">Cambio</th>
+                        <th class="text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var kv in _brandLiveCounts)
+                    {
+                        <tr>
+                            <td><strong>@kv.Key</strong></td>
+                            <td class="text-center fw-semibold">@kv.Value</td>
+                            <td class="text-center text-muted">—</td>
+                            <td class="text-center text-muted">—</td>
+                            <td class="text-center"><span class="badge bg-secondary">⚠ Sin historial</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (_brandDbUnavailable)
+    {
+        var liveCounts = GetBrandCountsFromLastCheckStore();
+        @if (liveCounts is not null)
+        {
+            <div class="alert alert-warning py-2 mb-2">
+                ⚠ <strong>Datos en tiempo real</strong> · BD no disponible — sin comparación histórica
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Marca</th>
+                            <th class="text-center">Pendientes actuales</th>
+                            <th class="text-center">Anterior</th>
+                            <th class="text-center">Cambio</th>
+                            <th class="text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var kv in liveCounts)
+                        {
+                            <tr>
+                                <td><strong>@kv.Key</strong></td>
+                                <td class="text-center fw-semibold">@kv.Value</td>
+                                <td class="text-center text-muted">—</td>
+                                <td class="text-center text-muted">—</td>
+                                <td class="text-center"><span class="badge bg-secondary">⚠ Sin historial</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning py-2 mb-2">
+                ⚠ <strong>BD no disponible</strong> · Esperando primer ciclo del checker — datos en camino
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Marca</th>
+                            <th class="text-center">Pendientes actuales</th>
+                            <th class="text-center">Anterior</th>
+                            <th class="text-center">Cambio</th>
+                            <th class="text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var site in BrandSnapshot.Sites)
+                        {
+                            <tr>
+                                <td><strong>@site</strong></td>
+                                <td class="text-center text-muted">—</td>
+                                <td class="text-center text-muted">—</td>
+                                <td class="text-center text-muted">—</td>
+                                <td class="text-center"><span class="badge bg-secondary">Sin datos</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-secondary py-2 mb-2">Sin datos aún — esperando primer ciclo del scheduler</div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Marca</th>
+                        <th class="text-center">Pendientes actuales</th>
+                        <th class="text-center">Anterior</th>
+                        <th class="text-center">Cambio</th>
+                        <th class="text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var site in BrandSnapshot.Sites)
+                    {
+                        <tr>
+                            <td><strong>@site</strong></td>
+                            <td class="text-center text-muted">—</td>
+                            <td class="text-center text-muted">—</td>
+                            <td class="text-center text-muted">—</td>
+                            <td class="text-center"><span class="badge bg-secondary">Sin datos</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 }
 else
 {
@@ -176,7 +354,6 @@ else
                 {
                     var hasHistory = s.PendingCountPrevious.HasValue;
                     var drop       = hasHistory ? s.PendingCountPrevious!.Value - s.PendingCountCurrent : (int?)null;
-                    // Badge derivado del drop real — hasHistory es la única fuente de verdad para "Sin datos"
                     var bc = !hasHistory ? "secondary" : drop switch { > 0 => "success", < 0 => "danger", _ => "warning" };
                     var be = !hasHistory ? "Sin datos"  : drop switch { > 0 => "🟢 OK",   < 0 => "🔴 Crítico", _ => "🟡 Moderado" };
                     <tr>
@@ -184,26 +361,12 @@ else
                         <td class="text-center fw-semibold">@(s.PendingCountCurrent < 0 ? "N/D" : s.PendingCountCurrent.ToString())</td>
                         <td class="text-center text-muted">@(hasHistory ? s.PendingCountPrevious!.Value.ToString() : "—")</td>
                         <td class="text-center">
-                            @if (!hasHistory)
-                            {
-                                <span class="text-muted">—</span>
-                            }
-                            else if (drop > 0)
-                            {
-                                <span class="text-success fw-semibold">▼ @drop</span>
-                            }
-                            else if (drop < 0)
-                            {
-                                <span class="text-danger fw-semibold">▲ @(-drop)</span>
-                            }
-                            else
-                            {
-                                <span class="text-muted">—</span>
-                            }
+                            @if (!hasHistory) { <span class="text-muted">—</span> }
+                            else if (drop > 0) { <span class="text-success fw-semibold">▼ @drop</span> }
+                            else if (drop < 0) { <span class="text-danger fw-semibold">▲ @(-drop)</span> }
+                            else               { <span class="text-muted">—</span> }
                         </td>
-                        <td class="text-center">
-                            <span class="badge bg-@bc">@be</span>
-                        </td>
+                        <td class="text-center"><span class="badge bg-@bc">@be</span></td>
                         <td class="text-muted small">@s.CheckedAt.ToLocalTime().ToString("HH:mm:ss")</td>
                     </tr>
                 }
@@ -213,23 +376,33 @@ else
 }
 
 @code {
-    private const int CardsRefreshIntervalSeconds  = 30;
-    private const int BrandRefreshIntervalSeconds = 30;
+    private const int CardsRefreshIntervalSeconds = 30;
+    private const int BrandUiRefreshIntervalSeconds = 60;  // poll UI — independiente del checker
 
-    private DateTimeOffset?              _cardsLastUpdate   = null;
-    private DateTimeOffset?              _brandLastUpdate   = null;
-    private int                          _cardsCountdown    = CardsRefreshIntervalSeconds;
-    private int                          _brandCountdown    = BrandRefreshIntervalSeconds;
+    // Lee desde config en cada acceso; hot-reload actualiza sin restart
+    private double BrandCheckerIntervalMinutes =>
+        _config.GetValue("Monitoring:BrandMonitorPollIntervalMinutes", 3.0);
+
+    private DateTimeOffset? _cardsLastUpdate  = null;
+    private DateTimeOffset? _brandLastUpdate  = null;  // cuándo el checker recolectó datos
+    private int _cardsCountdown = CardsRefreshIntervalSeconds;
+    private int _brandCountdown = BrandUiRefreshIntervalSeconds;
     private List<DomainCard>             _domains           = BuildDefaultDomains();
     private List<Incident>               _openIncidents     = [];
-    private IReadOnlyList<BrandSnapshot> _brandSnapshots    = [];
-    private bool                         _brandLoading      = true;
+    private IReadOnlyList<BrandSnapshot> _brandSnapshots  = [];
+    private bool                              _brandLoading       = true;
+    private bool                              _brandRefreshing    = false;
+    private bool                              _brandStale         = false;
+    private bool                              _brandDbUnavailable = false;
+    private bool                              _brandLiveManual    = false;
+    private IReadOnlyDictionary<string, int>? _brandLiveCounts    = null;
     private bool                         _refreshing        = false;
     private HashSet<Guid>                _resolving         = [];
     private string                       _userRole          = "Operador";
 
-    private string _overallColor = "success";
-    private string _overallText  = "OPERATIVO";
+    private string _overallColor     = "success";
+    private string _overallText      = "OPERATIVO";
+    private bool   _incidentsFallback = false;
 
     private Func<AlertMessage, Task>? _alertHandler;
     private Func<Guid, Task>?         _closeHandler;
@@ -290,7 +463,7 @@ else
                 _brandCountdown--;
                 if (_brandCountdown <= 0)
                 {
-                    _brandCountdown = BrandRefreshIntervalSeconds;
+                    _brandCountdown = BrandUiRefreshIntervalSeconds;
                     await RefreshBrandAsync();
                 }
                 await InvokeAsync(StateHasChanged);
@@ -312,8 +485,7 @@ else
 
     private async Task RefreshAllAsync()
     {
-        await RefreshIncidentsAsync();
-        await RefreshBrandAsync();
+        await Task.WhenAll(RefreshIncidentsAsync(), RefreshBrandAsync());
     }
 
     private async Task RefreshIncidentsAsync()
@@ -326,7 +498,8 @@ else
                 .Where(i => i.ClosedAt is null)
                 .OrderByDescending(i => i.OpenedAt)
                 .ToList();
-            _cardsLastUpdate = DateTimeOffset.UtcNow;
+            _cardsLastUpdate   = DateTimeOffset.UtcNow;
+            _incidentsFallback = false;
 
             _domains = BuildDefaultDomains();
             foreach (var inc in _openIncidents)
@@ -337,22 +510,85 @@ else
 
             UpdateOverallStatus();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Dashboard RefreshIncidentsAsync degradado: {Msg}", ex.Message);
+            _incidentsFallback = true;
+            _domains           = BuildDomainsFromLastCheckStore();
+            UpdateOverallStatus();
+        }
     }
 
-    private async Task RefreshBrandAsync()
+    private List<DomainCard> BuildDomainsFromLastCheckStore()
     {
-        _brandLastUpdate = DateTimeOffset.UtcNow;
-        _brandLoading = true;
-        StateHasChanged();
+        var domains = BuildDefaultDomains();
+        var map = new Dictionary<string, ModuleId>
+        {
+            ["BD Pedidos"] = ModuleId.DbOrderChecker,
+            ["BD Salud"]   = ModuleId.DbHealthChecker,
+            ["Jobs"]       = ModuleId.JobsMonitor,
+        };
+        foreach (var d in domains)
+        {
+            if (d.Code == "M3") { ApplyApisWorstStatus(d); continue; }
+            if (!map.TryGetValue(d.Label, out var moduleId)) continue;
+            if (!LastCheckStore.Results.TryGetValue(moduleId, out var r)) continue;
+            d.Color = r.Status switch
+            {
+                CheckStatus.Critical => "danger",
+                CheckStatus.Warn     => "warning",
+                _                    => "success"
+            };
+        }
+        return domains;
+    }
+
+    private async Task RefreshBrandAsync(bool isManual = false)
+    {
+        bool hasData        = _brandSnapshots.Any() || _brandLiveCounts is not null;
+        bool stateUnknown   = !hasData && !_brandDbUnavailable && !_brandStale;
+        if (stateUnknown) { _brandLoading = true; StateHasChanged(); }
+        else              { _brandRefreshing = true; }
+
         try
         {
-            await BrandMonitorService.SimulateAndRefreshAsync();
-            _brandSnapshots = await BrandMonitorService.GetCurrentSnapshotsAsync();
+            var newSnapshots     = await BrandMonitorService.GetCurrentSnapshotsAsync();
+            _brandSnapshots      = newSnapshots;
+            _brandStale          = false;
+            _brandDbUnavailable  = false;
+            _brandLiveManual     = false;
+            _brandLiveCounts     = null;
+            _brandLastUpdate     = newSnapshots.Count > 0
+                ? newSnapshots.Max(s => s.CheckedAt)
+                : DateTimeOffset.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Dashboard RefreshBrandAsync: BD no disponible — {Msg}", ex.Message);
+            if (!hasData) _brandSnapshots = [];
+
+            // _brandStale solo cuando hay snapshots de BD que ahora están desactualizados
+            _brandStale         = _brandSnapshots.Any();
+            // _brandDbUnavailable solo cuando no hay ninguna fuente de datos disponible
+            _brandDbUnavailable = !_brandSnapshots.Any() && !(_brandLiveManual && _brandLiveCounts is not null);
+
+            // Solo si fue solicitud manual del usuario: consultar Salesforce en tiempo real
+            if (isManual)
+            {
+                _brandLiveManual = true;
+                _brandLiveCounts = await BrandMonitorService.GetLiveCountsAsync();
+                if (_brandLiveCounts is not null)
+                {
+                    _brandDbUnavailable = false;
+                    _brandStale         = false;
+                    _brandLastUpdate    = DateTimeOffset.UtcNow;
+                }
+            }
         }
         finally
         {
-            _brandLoading = false;
+            _brandLoading    = false;
+            _brandRefreshing = false;
             StateHasChanged();
         }
     }
@@ -420,16 +656,125 @@ else
 
     private void ApplyLastCheckResult(DomainCard card)
     {
+        if (card.Code == "M3")
+        {
+            ApplyApisWorstStatus(card);
+            return;
+        }
         var module = card.Label switch
         {
-            "BD Pedidos" => ModuleId.DbOrderChecker,
-            _ => (ModuleId?)null
+            "BD Pedidos" => (ModuleId?)ModuleId.DbOrderChecker,
+            _            => null
         };
         if (module is null) return;
-
         if (LastCheckStore.Results.TryGetValue(module.Value, out var result))
             card.Channels = ParseChannelDetails(result.Details);
     }
+
+    private void ApplyApisWorstStatus(DomainCard card)
+    {
+        bool hasSf = LastCheckStore.Results.TryGetValue(ModuleId.SalesforceApi, out var r1);
+        bool hasMv = LastCheckStore.Results.TryGetValue(ModuleId.MultivendeApi, out var r2);
+
+        // Ningún checker ha corrido aún (ventana de arranque ~30s)
+        if (!hasSf && !hasMv)
+        {
+            card.Color      = "secondary";
+            card.ApiDetails = [new("Salesforce", "Sin datos", "secondary"), new("Multivende", "Sin datos", "secondary")];
+            return;
+        }
+
+        var sfStatus = hasSf ? r1!.Status : (CheckStatus?)null;
+        var mvStatus = hasMv ? r2!.Status : (CheckStatus?)null;
+
+        // Peor estado entre los que tienen datos — Critical supera Warn supera Ok
+        string worstColor =
+            (sfStatus == CheckStatus.Critical || mvStatus == CheckStatus.Critical) ? "danger"  :
+            (sfStatus == CheckStatus.Warn     || mvStatus == CheckStatus.Warn)     ? "warning" :
+            "success";
+
+        // Escalate-only: no degradar un estado ya fijado por un incidente activo
+        bool escalateOnly = card.Color is "danger" || (card.Color is "warning" && worstColor is "success");
+        if (!escalateOnly)
+            card.Color = worstColor;
+
+        // Siempre poblar detalle por integración
+        card.ApiDetails = [BuildApiItem("Salesforce", hasSf ? r1 : null), BuildApiItem("Multivende", hasMv ? r2 : null)];
+    }
+
+    private static ApiItem BuildApiItem(string name, CheckResult? result)
+    {
+        if (result is null)
+            return new(name, "Sin datos", "secondary");
+        return result.Status switch
+        {
+            CheckStatus.Ok       => new(name, "Disponible",       "success"),
+            CheckStatus.Warn     => new(name, "Con advertencias", "warning", ParseCause(result.Details)),
+            CheckStatus.Critical => ParseCritical(name, result.Details),
+            _                    => new(name, "Sin datos",         "secondary"),
+        };
+    }
+
+    private static ApiItem ParseCritical(string name, string? details)
+    {
+        if (string.IsNullOrWhiteSpace(details))
+            return new(name, "Sin respuesta", "danger");
+
+        // Quitar prefijo del nombre si el checker lo incluye: "Multivende HTTP 401 — ..."
+        var text = details.StartsWith(name, StringComparison.OrdinalIgnoreCase)
+            ? details[name.Length..].TrimStart()
+            : details;
+
+        // Separar "Tipo corto — causa real"
+        var sep = text.IndexOf(" — ", StringComparison.Ordinal);
+        if (sep > 0)
+            return new(name, text[..sep].Trim(), "danger", Truncate(text[(sep + 3)..].Trim(), 32));
+
+        return new(name, Truncate(text, 30), "danger");
+    }
+
+    private static string? ParseCause(string? details)
+    {
+        if (string.IsNullOrWhiteSpace(details)) return null;
+        var sep = details.IndexOf(" — ", StringComparison.Ordinal);
+        return sep > 0
+            ? Truncate(details[(sep + 3)..].Trim(), 32)
+            : Truncate(details, 32);
+    }
+
+    private static string Truncate(string text, int max) =>
+        text.Length <= max ? text : text[..max].TrimEnd() + "…";
+
+    // Lee conteos de LastCheckStore cuando BD no está disponible (checker escribe, UI solo lee)
+    private IReadOnlyDictionary<string, int>? GetBrandCountsFromLastCheckStore()
+    {
+        if (!LastCheckStore.Results.TryGetValue(ModuleId.BrandMonitor, out var r)) return null;
+        if (string.IsNullOrWhiteSpace(r.Details)) return null;
+        var result = new Dictionary<string, int>();
+        foreach (var part in r.Details.Split('|', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var seg = part.Split(':');
+            if (seg.Length >= 2 && int.TryParse(seg[1], out var count))
+                result[seg[0]] = count;
+        }
+        return result.Count > 0 ? result : null;
+    }
+
+    private static string ApiStatusIcon(string color) => color switch
+    {
+        "success" => "✅",
+        "warning" => "⚠",
+        "danger"  => "❌",
+        _         => "—",
+    };
+
+    private static string ApiStatusClass(string color) => color switch
+    {
+        "success" => "text-success",
+        "warning" => "text-warning",
+        "danger"  => "text-danger",
+        _         => "text-muted",
+    };
 
     private static List<ChannelItem>? ParseChannelDetails(string details)
     {
@@ -493,13 +838,15 @@ else
 
     private sealed class DomainCard(string label, string code, string color)
     {
-        public string               Label    { get; }      = label;
-        public string               Code     { get; }      = code;
-        public string               Color    { get; set; } = color;
-        public List<ChannelItem>?   Channels { get; set; }
+        public string             Label      { get; }      = label;
+        public string             Code       { get; }      = code;
+        public string             Color      { get; set; } = color;
+        public List<ChannelItem>? Channels   { get; set; }
+        public List<ApiItem>?     ApiDetails { get; set; }
     }
 
     private sealed record ChannelItem(string Name, int Count, bool IsOk);
+    private sealed record ApiItem(string Name, string StatusLabel, string BadgeColor, string? Detail = null);
 }
 
 @using MonitorPedidos.Domain.Alerts

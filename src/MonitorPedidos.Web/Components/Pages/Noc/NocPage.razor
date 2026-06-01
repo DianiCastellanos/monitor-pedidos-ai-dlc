@@ -3,64 +3,203 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @implements IAsyncDisposable
-@inject AlertBroadcaster Broadcaster
+@using MonitorPedidos.Domain.Monitoring
+@using MonitorPedidos.Domain.Dashboard
+@using MonitorPedidos.Domain.Incidents
+@using MonitorPedidos.Domain.Shared
+@using MonitorPedidos.Domain.Alerts
+@using MonitorPedidos.Web.Services
+@inject LastCheckStore CheckStore
 @inject IIncidentService IncidentService
+@inject IBrandSnapshotRepository BrandSnapshotRepo
+@inject IJobStatusSource JobSource
+@inject AlertBroadcaster Broadcaster
 
-<h3 class="mb-3">Estado en Tiempo Real</h3>
-
-<div class="row g-3 mb-4">
-    @foreach (var domain in _domains)
-    {
-        <div class="col-md-3">
-            <div class="card border-@domain.Color h-100">
-                <div class="card-body text-center">
-                    <h6 class="card-title">@domain.Label</h6>
-                    <span class="fs-3 badge bg-@domain.Color">@domain.StatusText</span>
-                    <p class="card-text text-muted small mt-1">@domain.Detail</p>
-                    @if (domain.Channels is not null)
-                    {
-                        <div class="mt-2 text-start small">
-                            @foreach (var ch in domain.Channels)
-                            {
-                                <div class="d-flex justify-content-between @(ch.IsOk ? "" : "text-danger fw-semibold")">
-                                    <span>@ch.Name</span>
-                                    <span>@ch.Count ped @(ch.IsOk ? "✅" : "❌")</span>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    }
+<div class="d-flex justify-content-between align-items-center mb-3"
+     style="border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:0.6rem;">
+    <h3 class="mb-0 text-light" style="font-size:1.5rem; font-weight:600;">Estado del Sistema</h3>
+    <span style="color:#9ca3af; font-size:1rem; font-family:monospace;">
+        Actualizado: @_lastRefresh.ToString("HH:mm:ss")
+    </span>
 </div>
 
-@if (_openIncidents.Any())
+<div class="row g-3 mb-4">
+
+    @* M3 — APIs Externas (primero: errores críticos visibles inmediatamente) *@
+    <div class="col-md-3">
+        <NocCard Title="APIs Externas M3" Status="@GetApisStatus()">
+            <div style="padding:0.4rem 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:500;">Salesforce</span>
+                    @ApiStatusBadge(ModuleId.SalesforceApi)
+                </div>
+                @{ var sfDetail = GetApiShortDetail(ModuleId.SalesforceApi); }
+                @if (sfDetail is not null)
+                {
+                    <div style="color:#9ca3af; font-size:0.78rem; margin-top:0.15rem;">@sfDetail</div>
+                }
+            </div>
+            <div style="padding:0.4rem 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:500;">Multivende</span>
+                    @ApiStatusBadge(ModuleId.MultivendeApi)
+                </div>
+                @{ var mvDetail = GetApiShortDetail(ModuleId.MultivendeApi); }
+                @if (mvDetail is not null)
+                {
+                    <div style="color:#9ca3af; font-size:0.78rem; margin-top:0.15rem;">@mvDetail</div>
+                }
+            </div>
+        </NocCard>
+    </div>
+
+    @* M11 — Jobs *@
+    <div class="col-md-3">
+        <NocCard Title="Jobs M11" Status="@GetModuleStatus(ModuleId.JobsMonitor)">
+            @if (_jobs is not null && _jobs.Count > 0)
+            {
+                foreach (var j in _jobs)
+                {
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0;">
+                        <span style="font-weight:500;">@j.JobName</span>
+                        <span style="color:@(j.IsRunning ? "#22c55e" : "#ef4444"); font-size:1.2rem; font-weight:700;">
+                            @(j.IsRunning ? "Enabled" : "Disabled")
+                        </span>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="color:#9ca3af; font-size:1rem;">Esperando datos...</div>
+            }
+        </NocCard>
+    </div>
+
+    @* M2 — BD Pedidos *@
+    <div class="col-md-3">
+        <NocCard Title="BD Pedidos M2" Status="@GetModuleStatus(ModuleId.DbOrderChecker)">
+            @if (_channels is not null)
+            {
+                foreach (var c in _channels)
+                {
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0;">
+                        <span style="font-weight:500;">@c.Name</span>
+                        <span style="color:@(c.IsOk ? "#22c55e" : "#ef4444"); font-size:1.3rem; font-weight:700;">
+                            @c.Count ped @(c.IsOk ? "" : "✗")
+                        </span>
+                    </div>
+                }
+            }
+            else
+            {
+                @if (CheckStore.Results.TryGetValue(ModuleId.DbOrderChecker, out var m2r)
+                     && m2r.Status == CheckStatus.Critical)
+                {
+                    <div style="color:#ef4444; font-size:0.95rem;">@m2r.Details</div>
+                }
+                else
+                {
+                    <div style="color:#9ca3af; font-size:1rem;">Esperando datos...</div>
+                }
+            }
+        </NocCard>
+    </div>
+
+    @* M4 — BD Salud *@
+    <div class="col-md-3">
+        <NocCard Title="BD Salud M4" Status="@GetModuleStatus(ModuleId.DbHealthChecker)">
+            <div style="font-size:1.1rem;">
+                Latencia: <strong style="font-size:1.8rem; color:#22c55e;">@GetLatency()</strong>
+            </div>
+        </NocCard>
+    </div>
+</div>
+
+<div class="mb-4">
+    <BrandMonitorTable Snapshots="@_brandSnapshots"
+                       LiveCounts="@_brandLiveCounts"
+                       IsLiveFallback="@_brandLiveFallback"
+                       PendingThreshold="20" />
+</div>
+
+@if (_incidentsFallback)
 {
-    <table class="table table-sm table-dark">
-        <thead><tr><th>Módulo</th><th>Severidad</th><th>Desde</th></tr></thead>
-        <tbody>
+    @* BD no disponible — mostrar estados críticos desde LastCheckStore *@
+    var criticals = CheckStore.Results
+        .Where(kv => kv.Value.Status != CheckStatus.Ok)
+        .OrderByDescending(kv => kv.Value.Status)
+        .ToList();
+    <div style="background:#1e1e2e; border-radius:12px; padding:1rem; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+        <h4 style="color:#eab308; font-size:1.2rem; font-weight:600; margin-bottom:0.6rem;
+                  border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.4rem;">
+            ⚠ BD no disponible — estados desde última verificación
+        </h4>
+        @if (criticals.Any())
+        {
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:0.4rem;">
+                @foreach (var kv in criticals)
+                {
+                    var sevColor = kv.Value.Status == CheckStatus.Critical ? "#ef4444" : "#eab308";
+                    <div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:0.5rem 0.8rem;
+                                display:flex; justify-content:space-between; align-items:center;
+                                border-left:4px solid @sevColor;">
+                        <span style="font-weight:500; color:#e0e0e0;">@ModuleLabel(kv.Key)</span>
+                        <span style="color:@sevColor; font-weight:700; font-size:0.9rem;">
+                            @(kv.Value.Status == CheckStatus.Critical ? "CRITICAL" : "WARN")
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <span style="color:#22c55e; font-size:1rem;">Todos los módulos operativos</span>
+        }
+    </div>
+}
+else if (_openIncidents.Any())
+{
+    <div style="background:#1e1e2e; border-radius:12px; padding:1rem; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+        <h4 style="color:#fff; font-size:1.2rem; font-weight:600; margin-bottom:0.6rem;
+                  border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.4rem;">
+            Incidentes Activos (@_openIncidents.Count)
+        </h4>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:0.4rem;">
             @foreach (var inc in _openIncidents)
             {
-                <tr>
-                    <td>@inc.Module</td>
-                    <td><span class="badge bg-@SeverityColor(inc.Severity)">@inc.Severity</span></td>
-                    <td>@inc.OpenedAt.ToLocalTime().ToString("HH:mm")</td>
-                </tr>
+                var sevColor = inc.Severity == Severity.Critical ? "#ef4444" : "#eab308";
+                <div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:0.5rem 0.8rem;
+                            display:flex; justify-content:space-between; align-items:center;
+                            border-left:4px solid @sevColor;">
+                    <span style="font-weight:500; color:#e0e0e0;">@ModuleLabel(inc.Module)</span>
+                    <span style="color:@sevColor; font-weight:700; font-size:0.9rem;">
+                        @inc.Severity
+                    </span>
+                </div>
             }
-        </tbody>
-    </table>
+        </div>
+    </div>
 }
 else
 {
-    <div class="alert alert-success py-2">✅ Sin incidentes activos.</div>
+    <div style="background:#1e1e2e; border-radius:12px; padding:0.7rem 1rem; text-align:center;
+                box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+        <span style="color:#22c55e; font-size:1.1rem; font-weight:600;">Sin incidentes activos</span>
+    </div>
 }
 
 @code {
-    private List<DomainCard> _domains = BuildDefaultDomains();
-    private List<Incident>   _openIncidents = [];
+    private List<ChannelItem>? _channels;
+    private IReadOnlyList<JobStatusSnapshot>? _jobs;
+    private IReadOnlyList<BrandSnapshot>      _brandSnapshots    = [];
+    private IReadOnlyDictionary<string, int>? _brandLiveCounts   = null;
+    private bool                              _brandLiveFallback = false;
+    private List<Incident>                    _openIncidents     = [];
+    private DateTime                          _lastRefresh       = DateTime.MinValue;
+    private bool                              _incidentsFallback = false;
     private Func<AlertMessage, Task>? _alertHandler;
-    private Func<Guid, Task>?         _closeHandler;
+    private Func<Guid, Task>? _closeHandler;
+    private Timer? _refreshTimer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,38 +211,121 @@ else
         Broadcaster.OnIncidentClosed += _closeHandler;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _refreshTimer = new Timer(async _ => await InvokeAsync(RefreshAsync), null,
+            TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15));
+    }
+
     private async Task RefreshAsync()
     {
-        var paged = await IncidentService.SearchHistoryAsync(new IncidentSearchFilter { Take = 50 });
-        _openIncidents = paged.Items.Where(i => i.ClosedAt is null).OrderByDescending(i => i.OpenedAt).ToList();
-        foreach (var inc in _openIncidents) UpdateDomainCard(inc);
-    }
+        _lastRefresh = DateTime.Now;
 
-    private void UpdateDomainCard(Incident inc)
-    {
-        var label = inc.Module switch
+        try
         {
-            ModuleId.DbOrderChecker  => "BD Pedidos",
-            ModuleId.DbHealthChecker => "BD Salud",
-            ModuleId.JobsMonitor     => "Jobs",
-            ModuleId.SalesforceApi or ModuleId.MultivendeApi => "APIs Externas",
-            _ => null
-        };
-        if (label is null) return;
-        var card = _domains.FirstOrDefault(d => d.Label == label);
-        if (card is null) return;
-        card.StatusText = inc.Severity.ToString();
-        card.Color      = SeverityColor(inc.Severity);
-        card.Detail     = inc.Alert?.QuePaso ?? "";
-
-        if (inc.Module == ModuleId.DbOrderChecker && inc.Alert?.QuePaso is { } details)
-        {
-            card.Channels = ParseChannelDetails(details);
+            _brandSnapshots    = await BrandSnapshotRepo.GetLatestPerSiteAsync();
+            _brandLiveFallback = false;
+            _brandLiveCounts   = null;
         }
+        catch
+        {
+            // BD no disponible — fallback a LastCheckStore
+            _brandLiveCounts   = ParseBrandCountsFromLastCheckStore();
+            _brandLiveFallback = _brandLiveCounts is not null;
+        }
+        try { _jobs = await JobSource.GetCurrentStatusAsync(); } catch { }
+
+        if (CheckStore.Results.TryGetValue(ModuleId.DbOrderChecker, out var orderResult))
+            _channels = ParseChannelDetails(orderResult.Details);
+        else
+            _channels = null;
+
+        try
+        {
+            var paged = await IncidentService.SearchHistoryAsync(
+                new IncidentSearchFilter(Take: 50), default);
+            _openIncidents     = paged.Items.Where(i => i.ClosedAt is null)
+                .OrderByDescending(i => i.OpenedAt).ToList();
+            _incidentsFallback = false;
+        }
+        catch
+        {
+            _incidentsFallback = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
+
+    private IReadOnlyDictionary<string, int>? ParseBrandCountsFromLastCheckStore()
+    {
+        if (!CheckStore.Results.TryGetValue(ModuleId.BrandMonitor, out var r)) return null;
+        if (string.IsNullOrWhiteSpace(r.Details)) return null;
+        var result = new Dictionary<string, int>();
+        foreach (var part in r.Details.Split('|', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var seg = part.Split(':');
+            if (seg.Length >= 2 && int.TryParse(seg[1], out var count))
+                result[seg[0]] = count;
+        }
+        return result.Count > 0 ? result : null;
+    }
+
+    private CheckStatus? GetModuleStatus(ModuleId id)
+        => CheckStore.Results.TryGetValue(id, out var r) ? r.Status : null;
+
+    private CheckStatus? GetApisStatus()
+    {
+        var sf = GetModuleStatus(ModuleId.SalesforceApi);
+        var mv = GetModuleStatus(ModuleId.MultivendeApi);
+        if (sf == CheckStatus.Critical || mv == CheckStatus.Critical) return CheckStatus.Critical;
+        if (sf == CheckStatus.Warn    || mv == CheckStatus.Warn)    return CheckStatus.Warn;
+        if (sf == null || mv == null) return null;
+        return CheckStatus.Ok;
+    }
+
+    private string GetLatency()
+    {
+        if (CheckStore.Results.TryGetValue(ModuleId.DbHealthChecker, out var r)
+            && !string.IsNullOrEmpty(r.Details))
+            return r.Details;
+        return "N/A";
+    }
+
+    private string? GetApiShortDetail(ModuleId id)
+    {
+        if (!CheckStore.Results.TryGetValue(id, out var r)) return null;
+        if (r.Status != CheckStatus.Critical || string.IsNullOrEmpty(r.Details)) return null;
+        return r.Details.Length > 40 ? r.Details[..40] + "…" : r.Details;
+    }
+
+    private RenderFragment ApiStatusBadge(ModuleId id) => builder =>
+    {
+        var status = GetModuleStatus(id);
+        var color = status switch
+        {
+            CheckStatus.Ok       => "#22c55e",
+            CheckStatus.Warn     => "#eab308",
+            CheckStatus.Critical => "#ef4444",
+            _                    => "#6b7280"
+        };
+        var label = status switch
+        {
+            CheckStatus.Ok       => "Disponible",
+            CheckStatus.Warn     => "Con advertencias",
+            CheckStatus.Critical => "Sin respuesta",
+            _                    => "Sin datos"
+        };
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "style",
+            $"color:{color}; font-weight:700; font-size:1rem;");
+        builder.AddContent(2, label);
+        builder.CloseElement();
+    };
 
     private static List<ChannelItem>? ParseChannelDetails(string details)
     {
+        if (string.IsNullOrEmpty(details)) return null;
         var parts = details.Split('|', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0) return null;
 
@@ -111,50 +333,29 @@ else
         foreach (var part in parts)
         {
             var segments = part.Split(':');
-            if (segments.Length >= 3 &&
-                int.TryParse(segments[1], out var count))
-            {
+            if (segments.Length >= 3 && int.TryParse(segments[1], out var count))
                 items.Add(new ChannelItem(segments[0], count, segments[2] == "OK"));
-            }
         }
         return items.Count > 0 ? items : null;
     }
 
-    private static string SeverityColor(Severity s) => s switch
+    private static string ModuleLabel(ModuleId m) => m switch
     {
-        Severity.Critical => "danger",
-        Severity.Warn     => "warning",
-        _                 => "success"
+        ModuleId.DbOrderChecker  => "BD Pedidos",
+        ModuleId.DbHealthChecker => "BD Salud",
+        ModuleId.JobsMonitor     => "Jobs",
+        ModuleId.SalesforceApi   => "Salesforce",
+        ModuleId.MultivendeApi   => "Multivende",
+        ModuleId.BrandMonitor    => "Brand Monitor",
+        _                        => m.ToString()
     };
-
-    private static List<DomainCard> BuildDefaultDomains() =>
-    [
-        new("BD Pedidos", "OK", "success", "Sin datos"),
-        new("BD Salud",   "OK", "success", "Sin datos"),
-        new("Jobs",       "OK", "success", "Sin datos"),
-        new("APIs Externas", "OK", "success", "Sin datos"),
-    ];
 
     public async ValueTask DisposeAsync()
     {
         if (_alertHandler is not null) Broadcaster.OnAlert          -= _alertHandler;
         if (_closeHandler is not null) Broadcaster.OnIncidentClosed -= _closeHandler;
-        await Task.CompletedTask;
-    }
-
-    private sealed class DomainCard(string label, string statusText, string color, string detail)
-    {
-        public string               Label      { get; } = label;
-        public string               StatusText { get; set; } = statusText;
-        public string               Color      { get; set; } = color;
-        public string               Detail     { get; set; } = detail;
-        public List<ChannelItem>?   Channels   { get; set; }
+        if (_refreshTimer is not null) await _refreshTimer.DisposeAsync();
     }
 
     private sealed record ChannelItem(string Name, int Count, bool IsOk);
 }
-
-@using MonitorPedidos.Domain.Alerts
-@using MonitorPedidos.Domain.Incidents
-@using MonitorPedidos.Domain.Shared
-@using MonitorPedidos.Web.Services

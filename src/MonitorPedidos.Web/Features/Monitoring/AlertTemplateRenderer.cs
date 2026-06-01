@@ -49,6 +49,14 @@ public static class AlertTemplateRenderer
                 CausaProbable:  "La API externa no responde o retorna error de servidor (5xx). Se realizaron 2 reintentos automáticos.",
                 AccionSugerida: "Verificar estado de la API. Revisar logs de reintentos en el detalle del incidente."),
 
+            [(CauseCategory.Api, Severity.Warn)] = ctx => new AlertMessage(
+                QuePaso:        ctx.CheckDetails,
+                Cuando:         ctx.DetectedAt,
+                Donde:          $"Módulo {ctx.Module} — Salesforce",
+                SeveridadTexto: "ADVERTENCIA",
+                CausaProbable:  "Pedidos pendientes de descarga detectados en Salesforce Commerce Cloud.",
+                AccionSugerida: "Revisar los sites afectados y verificar que el job de descarga esté corriendo."),
+
             [(CauseCategory.Token, Severity.Critical)] = ctx => new AlertMessage(
                 QuePaso:        $"Token de autenticación inválido o expirado en módulo {ctx.Module}.",
                 Cuando:         ctx.DetectedAt,

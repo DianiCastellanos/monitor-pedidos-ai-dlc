@@ -4,7 +4,7 @@ public enum SnapshotStatus { Green, Yellow, Red, NoData }
 
 public sealed class BrandSnapshot
 {
-    public static readonly string[] Sites = ["Patprimo", "SevenSeven", "Atmos", "Ostu"];
+    public static readonly string[] Sites = ["PatPrimo", "SevenSeven", "Atmos", "Ostu"];
 
     public int            Id                   { get; private set; }
     public string         Site                 { get; private set; } = string.Empty;

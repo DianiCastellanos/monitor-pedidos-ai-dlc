@@ -79,15 +79,87 @@
 - **Total plans**: 28/28 archivos ✅ COMPLETO
 
 ### Iteraciones post-MVP
-- [x] **M2 Configurable por Reglas** — 2026-05-29. Ver `construction/rules-configurable-m2-design.md`.
-  - `RuleCondition`: nuevo campo `Channels`
-  - `Rule`: `AppliesTo` → `ModuleId`
-  - `DbOrderChecker`: lee `MinOrders` + `Channels` desde regla activa; conteo correcto vía `GroupBy(OrderId).ToDictionary()`
-  - Seed data insertada (WindowMinutes=10, MinOrders=1, Channels=["SALESFORCE","MULTIVENDE"])
-  - Bug corregido: `Distinct()` reemplazado por `GroupBy` para conteo real por canal
-- [x] **Dashboard timers separados** — Cards 30s, Brand Monitor 30s independientes
-- [x] **Labels humanas** — Módulo/Causa en HistoricPage, IncidentDetailPage, WeeklySummaryPage
-- [x] **@rendermode InteractiveServer** — Agregado a páginas que lo requieren (rules, incidents, weekly summary)
+
+> Documentación organizada en `construction/iteraciones/` + planes en `construction/plans/`.
+
+- [x] **IT1 — PostgreSQL → SQL Server + Dual DB** — 2026-05-30
+  - Swap proveedor EF Core: Npgsql → SqlServer
+  - Segunda conexión `ProductionDb` (Dapper, solo SELECT) → `oc_encabezado`
+  - `IOrderSource` condicional: `ProductionOrderRepository` en prod, `SimulatedOrderRepository` en dev
+  - Artefactos: `construction/iteraciones/it1-sqlserver-migration/` · Plan: `plans/it1-sqlserver-migration-plan.md`
+- [x] **IT2 — M2 Configurable por Reglas** — 2026-05-29
+  - `RuleCondition`: nuevo campo `Channels`; `Rule.AppliesTo` → `ModuleId`
+  - `DbOrderChecker`: lee `MinOrders` + `Channels` desde regla activa; conteo vía `GroupBy(OrderId).ToDictionary()`
+  - Seed data migración `MakeRulesConfigurable` (WindowMinutes=10, MinOrders=1, Channels=["SALESFORCE","MULTIVENDE"])
+  - Artefactos: `construction/iteraciones/it2-m2-configurable/` · Plan: `plans/it2-m2-configurable-plan.md`
+- [x] **IT3 — Brand Monitor Redesign** — 2026-05-28
+  - Append-only (`InsertAsync`); comparación vs snapshot histórico real (`GetSnapshotBeforeAsync`)
+  - `PendingCountPrevious` nullable; `SnapshotStatus.NoData`; badge desde `hasHistory`
+  - `IServiceScopeFactory.CreateAsyncScope()` en `BrandMonitorService`; ventana configurable
+  - Paso 7 (retención 48h) diferido por el owner
+  - Artefactos: `construction/iteraciones/it3-brand-monitor/` · Plan: `plans/it3-brand-monitor-plan.md`
+- [x] **IT4 — Dashboard Improvements** — 2026-05-28/29
+  - Timers separados: `_domainTimer` + `_brandTimer` (30s c/u)
+  - Labels humanas Módulo/Causa en HistoricPage, IncidentDetailPage, WeeklySummaryPage
+  - `@rendermode InteractiveServer` en páginas de reglas e histórico
+  - Artefactos: `construction/iteraciones/it4-dashboard-improvements/` · Plan: `plans/it4-dashboard-improvements-plan.md`
+
+- [x] **IT5 — Salesforce Order Monitor** — 2026-05-30
+  - `ISalesforceClient`: `PingOrdersAsync` → `SearchPendingOrdersAsync` (POST OCAPI order_search)
+  - `SalesforceSearchOutcome` nuevo tipo de resultado con datos de pedidos por site
+  - `SalesforceApiChecker`: evalúa pedidos pendientes por site Colombia; details `"SITE:COUNT:STATUS"`
+  - `AlertTemplateRenderer`: `+` template `(Api, Warn)` con `ctx.CheckDetails`
+  - Dashboard "APIs Externas": sub-rows por site via `ApplyLastCheckResult` → `LastCheckStore[SalesforceApi]`
+  - Config multi-site 4 marcas Colombia (PatPrimo, SevenSeven, Ostu, Atmos) — OAuth2 Account Manager
+  - Token endpoint: `https://account.demandware.com/dwsso/oauth2/access_token` (client_credentials S2S)
+  - `SalesforceApiChecker` refactorizado IT8: solo disponibilidad (Ok/Critical), sin Warn por volumen
+  - Plan: `plans/it5-salesforce-order-monitor-plan.md`
+
+- [x] **IT7 — Salesforce → Brand Monitor Integration** — 2026-05-30/31
+  - `BrandMonitorChecker` reemplaza `ISimulatedOrderRepository` por `ISalesforceClient`
+  - Conteos reales por site con `OrdinalIgnoreCase`; fallo Salesforce → `Warn` sin snapshots
+  - `BrandMonitorService.SimulateAndRefreshAsync` simplificado (solo llama checker)
+  - `BrandSnapshot.Sites`: `"Patprimo"` → `"PatPrimo"`; registros viejos eliminados de BD
+  - Validado: `PatPrimo=14, SevenSeven=6, Atmos=1, Ostu=15` (total=36)
+  - Plan: `plans/it7-salesforce-brand-monitor-plan.md`
+
+- [x] **IT8 — NOC Page Improvements** — 2026-05-31
+  - `BrandMonitorTable`: usa `SnapshotStatus` real + flechas tendencia (↑↓=) + "pendientes por descargar"
+  - M3 APIs Externas: elimina "Pendientes", muestra `Disponible/Con advertencias/Sin respuesta`
+  - `ApiStatusBadge`: agrega estado `Warn` (amarillo) + labels descriptivos
+  - `GetApisStatus()`: propaga `Warn` correctamente
+  - `GetApiShortDetail()`: detalle técnico solo en Critical
+  - Timing dev: `CheckerIntervalMinutes=0.5` (30s); NOC UI timer 15s
+  - Artefactos: `construction/iteraciones/it8-noc-improvements/` · Plan: `plans/it8-noc-improvements-plan.md`
+
+- [x] **IT10 — Brand Monitor Live Fallback + M2 UX** — 2026-05-31
+  - `IBrandMonitorService.GetLiveCountsAsync()`: nuevo método — llama `ISalesforceClient` sin BD
+  - `BrandMonitorService`: implementa `GetLiveCountsAsync()` via `IServiceScopeFactory`
+  - `BrandMonitorTable.razor`: nuevos params `LiveCounts`, `IsLiveFallback` — tarjetas amarillas con "⚠ Sin historial"
+  - `NocPage.razor`: cuando `GetLatestPerSiteAsync` falla → `GetLiveCountsAsync()` fallback; M2 muestra detalle del checker en rojo en lugar de "Esperando datos..."
+  - `Dashboard.razor`: cuando `GetCurrentSnapshotsAsync` falla → `GetLiveCountsAsync()` fallback; tabla live con banner "⚠ Datos en tiempo real"
+  - Artefactos: `construction/iteraciones/it10-brand-monitor-live-fallback/` · Plan: `plans/it10-brand-monitor-live-fallback-plan.md`
+
+- [x] **IT11 — Dashboard Stability & M3 Per-API Detail** — 2026-05-31
+  - `Dashboard.razor`: Brand Monitor refresh no-destructivo — tabla permanece visible durante refresh; spinner inline "Actualizando..."; `_brandStale` banner cuando ambos fallan con datos previos
+  - `ApplyApisWorstStatus`: "secondary" solo cuando ningún checker ha corrido (arranque ~30s); partial data usa peor estado conocido; escalate-only preservado
+  - `DomainCard.ApiDetails`: nueva propiedad `List<ApiItem>` para detalle por integración en M3
+  - `BuildApiItem`: helper que convierte `CheckResult?` → `ApiItem` con label descriptivo por estado
+  - `ApiStatusClass`: helper CSS para colorear filas de API
+  - M3 card: muestra `Salesforce → ✅/⚠/❌ [estado]` y `Multivende → ...` siempre que haya datos
+  - Template: dot `secondary` (gris) + `ApiDetails` > `Channels` en prioridad de render
+  - Artefactos: `construction/iteraciones/it11-dashboard-stability/` · Plan: `plans/it11-dashboard-stability-plan.md`
+
+- [x] **IT9 — Graceful Degradation** — 2026-05-31
+  - `MonitoringService.RunCheckAsync`: checker que lanza → guarda `Critical` en `LastCheckStore`; `OpenIncidentAsync` + `TryCloseOnConsecutiveOkAsync` protegidos con catch
+  - `DbOrderChecker`: `try/catch` externo → `Critical("Sin acceso a BD de pedidos")`
+  - `JobsChecker`: `try/catch` → `Critical("Sin acceso a jobs: ...")`
+  - `BrandMonitorChecker`: catch separados para `GetLatestAsync`, `GetSnapshotBeforeAsync`, `InsertAsync`
+  - `DbHealthChecker`: mensaje limpio `"No hay conexión a la base de datos"` (sin raw SQL)
+  - `SalesforceApiChecker`: elimina parámetro `IConfiguration` no usado
+  - `Dashboard.razor`: `RefreshIncidentsAsync` falla → `BuildDomainsFromLastCheckStore()` + banner "BD no disponible"; elimina `SimulateAndRefreshAsync()` del render
+  - `NocPage.razor`: fallback desde `LastCheckStore` cuando incidentes no cargables
+  - Artefactos: `construction/iteraciones/it9-graceful-degradation/` · Plan: `plans/it9-graceful-degradation-plan.md`
 
 ### OPERATIONS Phase
 - [ ] Placeholder (future)

@@ -36,6 +36,8 @@ public sealed class MonitoringService : IMonitoringService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Checker {Type} threw during ExecuteAsync", checker.GetType().Name);
+            result = CheckResult.Critical($"Error inesperado en {checker.GetType().Name.Replace("Checker", "")}");
+            _lastCheckStore.Results[checker.Module] = result;
             return;
         }
 
@@ -43,7 +45,8 @@ public sealed class MonitoringService : IMonitoringService
 
         if (result.Status == CheckStatus.Ok)
         {
-            await _incidents.TryCloseOnConsecutiveOkAsync(checker.Module, ct);
+            try { await _incidents.TryCloseOnConsecutiveOkAsync(checker.Module, ct); }
+            catch (Exception ex) { _logger.LogWarning("TryClose falló para {M}: {E}", checker.Module, ex.Message); }
             _logger.LogDebug("Check OK: {Module} — {Details}", checker.Module, result.Details);
             return;
         }
@@ -57,11 +60,16 @@ public sealed class MonitoringService : IMonitoringService
         var alert    = AlertTemplateRenderer.Render(context);
         var severity = result.Status == CheckStatus.Critical ? Severity.Critical : Severity.Warn;
 
-        // OpenIncidentAsync is idempotent and handles notification internally
-        var incident = await _incidents.OpenIncidentAsync(
-            checker.Module, cause, severity, alert, ct);
-
-        _logger.LogInformation("Incident {Id} opened: {Module} [{Status}] {Details}",
-            incident.Id, checker.Module, result.Status, result.Details);
+        try
+        {
+            var incident = await _incidents.OpenIncidentAsync(checker.Module, cause, severity, alert, ct);
+            _logger.LogInformation("Incident {Id} opened: {Module} [{Status}] {Details}",
+                incident.Id, checker.Module, result.Status, result.Details);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("No se pudo crear incidente para {Module} (BD no disponible): {Msg}",
+                checker.Module, ex.Message);
+        }
     }
 }

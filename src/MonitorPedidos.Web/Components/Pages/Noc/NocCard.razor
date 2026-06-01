@@ -1,0 +1,43 @@
+@using MonitorPedidos.Domain.Monitoring
+
+<div class="noc-card"
+     style="background:#1e1e2e; border-radius:12px; border-left:5px solid @BorderColor;
+            padding:1.25rem; height:100%; display:flex; flex-direction:column;
+            box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+
+    <div class="d-flex justify-content-between align-items-center mb-2"
+         style="border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.6rem;">
+        <span style="font-size:1.2rem; font-weight:600; color:#fff; letter-spacing:0.3px;">
+            @Title
+        </span>
+        <span style="display:inline-block; width:14px; height:14px; border-radius:50%;
+                     background:@DotColor; box-shadow:0 0 8px @DotColor;">
+        </span>
+    </div>
+
+    <div style="flex:1; color:#e0e0e0; font-size:1.05rem;">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public CheckStatus? Status { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string BorderColor => Status switch
+    {
+        CheckStatus.Ok       => "#22c55e",
+        CheckStatus.Warn     => "#eab308",
+        CheckStatus.Critical => "#ef4444",
+        _                    => "#6b7280"
+    };
+
+    private string DotColor => Status switch
+    {
+        CheckStatus.Ok       => "#22c55e",
+        CheckStatus.Warn     => "#eab308",
+        CheckStatus.Critical => "#ef4444",
+        _                    => "#6b7280"
+    };
+}

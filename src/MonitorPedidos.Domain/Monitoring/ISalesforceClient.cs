@@ -2,6 +2,6 @@ namespace MonitorPedidos.Domain.Monitoring;
 
 public interface ISalesforceClient
 {
-    /// <summary>Verifica conectividad en modo solo lectura. Nunca POST/PUT/PATCH/DELETE.</summary>
-    Task<ApiPingResult> PingOrdersAsync(CancellationToken ct = default);
+    /// <summary>Busca pedidos pendientes de descarga en OCAPI. Solo lectura — POST a order_search.</summary>
+    Task<SalesforceSearchOutcome> SearchPendingOrdersAsync(CancellationToken ct = default);
 }

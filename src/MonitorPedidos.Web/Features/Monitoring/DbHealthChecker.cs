@@ -37,9 +37,9 @@ public sealed class DbHealthChecker : ICheckExecutor
                 ? CheckResult.Warn($"BD responde con latencia alta: {sw.ElapsedMilliseconds} ms.")
                 : CheckResult.Ok($"BD responde en {sw.ElapsedMilliseconds} ms.");
         }
-        catch (Exception ex)
+        catch
         {
-            return CheckResult.Critical($"BD no responde: {ex.Message}");
+            return CheckResult.Critical("No hay conexión a la base de datos");
         }
     }
 }

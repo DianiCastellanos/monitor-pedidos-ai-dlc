@@ -3,7 +3,7 @@
 **Unidad:** U3 — Detection & Classification
 **Stage:** Construction → Functional Design
 **Fecha:** 2026-05-23
-**Versión:** 1.0
+**Versión:** 1.1 (2026-05-31 — BR-DET-01 actualizado: 3 timers IT4/IT7; BR-DET-03 actualizado: graceful degradation IT9; BR-SCHED-04 nuevo; BR-SOURCE-01/02 actualizados: fuentes reales IT1/IT5)
 
 ---
 
@@ -11,9 +11,9 @@
 
 | ID | Regla | Implementación | Story | RF |
 |----|-------|---------------|-------|----|
-| BR-DET-01 | Todos los checkers (M2, M4, M11) se ejecutan cada **5 minutos** vía un único `PeriodicTimer` | `MonitoringSchedulerService` — `PeriodicTimer(TimeSpan.FromMinutes(5))` | US-07, US-08, US-09 | RF-01, RF-04, RF-05 |
+| BR-DET-01 | Los checkers se ejecutan en **3 timers independientes**: Timer1 (M2/M4/M11, 5 min prod/30s dev), Timer2 (APIs M3, 5 min prod/1 min dev), Timer3 dinámico (Brand Monitor, 3 min prod/1 min dev). Intervalos configurables en `appsettings.json`. | `MonitoringSchedulerService` — `Task.WhenAll(Timer1Loop, Timer2Loop, Timer3Loop)` | US-07, US-08, US-09, US-10 | RF-01, RF-03, RF-04, RF-05 |
 | BR-DET-02 | Solo `CheckStatus.Warn` o `CheckStatus.Critical` generan un incidente; `Ok` lo cierra si había uno abierto | `MonitoringService.RunCheckAsync` — `if result.RequiresIncident` | US-07, US-08, US-09 | RF-08 |
-| BR-DET-03 | Si un checker lanza excepción no manejada, el orquestador la captura, la loggea y continúa con los demás checkers (**aislamiento**) | try-catch en `RunCheckAsync` por checker individual | US-07..09 | RF-09 |
+| BR-DET-03 | Cada checker (`DbOrderChecker`, `JobsChecker`, `BrandMonitorChecker`) tiene try-catch interno que convierte excepciones en `CheckResult.Critical(mensaje limpio)`. `MonitoringService.RunCheckAsync` siempre actualiza `LastCheckStore`, incluso en caso de excepción del checker (**graceful degradation IT9**). | try-catch en checker + try-catch en `RunCheckAsync` | US-07..09 | RF-09 |
 | BR-DET-04 | La ventana de detección de ausencia de pedidos es configurable vía `appsettings.json` (`Monitoring:OrderDetectionWindowMinutes`, default: **30**) | `DbOrderChecker` — `_config.GetValue(...)` | US-07 | RF-01 |
 | BR-DET-05 | Los pedidos **cancelados** no se contabilizan al evaluar ausencia — solo cuentan pedidos activos | `DbOrderChecker` — `orders.Where(o => !o.IsCancelled)` | US-07 | RF-02 |
 
@@ -24,8 +24,9 @@
 | ID | Regla | Implementación | Story | RF |
 |----|-------|---------------|-------|----|
 | BR-SCHED-01 | `MonitoringSchedulerService` arranca automáticamente al iniciar la aplicación y se detiene limpiamente con graceful shutdown | `BackgroundService` registrado con `AddHostedService<>()` | US-07..09 | RF-01 |
-| BR-SCHED-02 | Los 3 checkers se ejecutan **en paralelo** (`Task.WhenAll`) — ninguno bloquea a los otros | `MonitoringSchedulerService` — `Task.WhenAll(...)` | US-07..09 | RF-01 |
-| BR-SCHED-03 | El scheduler no propaga la excepción de un checker individual — cada `RunCheckAsync` es independiente | try-catch por checker dentro del `WhenAll` | US-07..09 | RF-09 |
+| BR-SCHED-02 | Los checkers de cada timer se ejecutan **en secuencia** dentro de su loop (no en paralelo) para evitar condiciones de concurrencia en el `DbContext` | `RunTimerLoopAsync` — foreach sin Task.WhenAll | US-07..09 | RF-01 |
+| BR-SCHED-03 | El scheduler no propaga la excepción de un checker individual — cada loop tiene try-catch por checker | try-catch por checker dentro del loop | US-07..09 | RF-09 |
+| BR-SCHED-04 | El timer de Brand Monitor es dinámico (re-lee `BrandMonitorPollIntervalMinutes` cada iteración) — permite actualizar la frecuencia sin reiniciar la app | `RunBrandTimerLoopAsync` — `Task.Delay` con lectura de config en cada iteración | — | RF-03 |
 
 ---
 
@@ -56,9 +57,9 @@
 
 | ID | Regla | Implementación | Story | RF |
 |----|-------|---------------|-------|----|
-| BR-SOURCE-01 | `DbOrderChecker` accede a los pedidos **únicamente** a través de `IOrderSource` — nunca directamente a `AppDbContext` | `DbOrderChecker` depende de `IOrderSource` por DI | US-07 | RF-01 |
-| BR-SOURCE-02 | `JobsChecker` accede al estado de jobs **únicamente** a través de `IJobStatusSource` — nunca directamente | `JobsChecker` depende de `IJobStatusSource` por DI | US-09 | RF-05 |
-| BR-SOURCE-03 | En Sprint 2, `SimulatedOrderRepository` e `SimulatedJobStatusRepository` son las implementaciones concretas registradas en DI. Post-MVP se intercambian sin modificar los checkers | Registro DI en `Program.cs` | US-07, US-09 | — |
+| BR-SOURCE-01 | `DbOrderChecker` accede a los pedidos **únicamente** a través de `IOrderSource` — nunca directamente a `AppDbContext`. En producción: `ProductionOrderRepository` (SQL Server, BD `oc_encabezado`, solo lectura, Dapper). En desarrollo: `SimulatedOrderRepository` | `DbOrderChecker` depende de `IOrderSource` por DI; `IOrderSource` condicional en `Program.cs` según `ASPNETCORE_ENVIRONMENT` | US-07 | RF-01 |
+| BR-SOURCE-02 | `JobsChecker` accede al estado de jobs vía `schtasks.exe` consultando Windows Task Scheduler en `SR-SDEV02CO.patprimo.local`. Configurado en `JobsMonitor:Server` y `JobsMonitor:TaskName` | `JobsChecker` — schtasks con timeout `JobsMonitor:CommandTimeoutMs` (default 10s) | US-09 | RF-05 |
+| BR-SOURCE-03 | La implementación de `IOrderSource` es condicional: `ProductionOrderRepository` en producción, `SimulatedOrderRepository` en desarrollo. Sin modificar los checkers al cambiar de entorno | Registro DI en `Program.cs` según `ASPNETCORE_ENVIRONMENT` | US-07, US-09 | — |
 
 ---
 

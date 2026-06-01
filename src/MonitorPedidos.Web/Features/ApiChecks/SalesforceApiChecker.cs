@@ -3,31 +3,41 @@ using MonitorPedidos.Domain.Shared;
 
 namespace MonitorPedidos.Web.Features.ApiChecks;
 
-public sealed class SalesforceApiChecker : ICheckExecutor
+public sealed class SalesforceApiChecker(
+    ISalesforceClient              client,
+    ILogger<SalesforceApiChecker>  logger) : ICheckExecutor
 {
+    private static readonly string[] ColombianSites = ["PatPrimo", "SevenSeven", "Ostu", "Atmos"];
+
     public ModuleId Module => ModuleId.SalesforceApi;
-
-    private readonly ISalesforceClient _client;
-    private readonly ILogger<SalesforceApiChecker> _logger;
-
-    public SalesforceApiChecker(ISalesforceClient client, ILogger<SalesforceApiChecker> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
 
     public async Task<CheckResult> ExecuteAsync(CancellationToken ct = default)
     {
-        var ping = await _client.PingOrdersAsync(ct);
+        var outcome = await client.SearchPendingOrdersAsync(ct);
 
-        var result = ping switch
+        if (!outcome.IsSuccess)
         {
-            { IsSuccess: true }      => CheckResult.Ok($"Salesforce OK — {ping.LatencyMs} ms"),
-            { IsUnauthorized: true } => CheckResult.Critical("Salesforce HTTP 401 — token inválido"),
-            _                        => CheckResult.Critical($"Salesforce {ping.Details}")
-        };
+            var errorMsg = outcome.IsUnauthorized
+                ? $"Error de autenticación — token inválido o expirado"
+                : outcome.IsTimeout
+                    ? "Sin respuesta — timeout al conectar con Salesforce"
+                    : $"Error de conexión — {outcome.ErrorDetails}";
 
-        _logger.LogDebug("SalesforceApiChecker: {Status} — {Details}", result.Status, result.Details);
-        return result;
+            logger.LogWarning("[SalesforceApiChecker] {Error}", errorMsg);
+            return CheckResult.Critical(errorMsg);
+        }
+
+        // Contar pedidos pendientes por site Colombia
+        var bySite = ColombianSites.ToDictionary(
+            s => s,
+            s => outcome.Items.Count(i => string.Equals(i.SiteId, s, StringComparison.OrdinalIgnoreCase)));
+
+        var total   = bySite.Values.Sum();
+        var details = string.Join("|", bySite.Select(kv =>
+            $"{kv.Key}:{kv.Value}:{(kv.Value == 0 ? "OK" : "WARN")}"));
+
+        logger.LogInformation("[SalesforceApiChecker] total={Total} details={Details}", total, details);
+
+        return CheckResult.Ok(details);
     }
 }

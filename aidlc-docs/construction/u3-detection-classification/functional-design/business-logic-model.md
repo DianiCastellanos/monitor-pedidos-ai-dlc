@@ -3,7 +3,7 @@
 **Unidad:** U3 — Detection & Classification
 **Stage:** Construction → Functional Design
 **Fecha:** 2026-05-23
-**Versión:** 1.0
+**Versión:** 1.1 (2026-05-31 — §2 actualizado: graceful degradation IT9; §9 scheduler: 3 timers; §10 dependencias actualizadas)
 
 ---
 
@@ -58,7 +58,7 @@ MonitoringService.RunCheckAsync(checker, ct)
             _logger.LogInformation("Incident {Id} opened for {Module}", incident.Id, checker.Module)
 ```
 
-**Aislamiento de fallos:** si un checker lanza excepción no manejada, `RunCheckAsync` la captura con try-catch, loggea el error y retorna sin interrumpir los demás checkers (BR-DET-03).
+**Aislamiento de fallos (IT9):** cada checker (`DbOrderChecker`, `JobsChecker`, `BrandMonitorChecker`) tiene su propio try-catch que convierte excepciones en `CheckResult.Critical(mensaje limpio)`. `MonitoringService.RunCheckAsync` siempre actualiza `LastCheckStore`, incluso si el checker lanzó (BR-DET-03). `OpenIncidentAsync` y `TryCloseOnConsecutiveOkAsync` también están protegidos con catch para no interrumpir el circuito.
 
 ---
 
@@ -187,37 +187,48 @@ IJobStatusSource.GetCurrentStatusAsync(ct)
 
 ---
 
-## §9 Flujo 8 — Scheduler: arranque y ciclo de vida (M1)
+## §9 Flujo 8 — Scheduler: arranque y ciclo de vida (M1) — actualizado IT4/IT5/IT7
 
 ```
 MonitoringSchedulerService.ExecuteAsync(stoppingToken)
     |
-    +-- PeriodicTimer timer = new(TimeSpan.FromMinutes(5))
+    +-- Timer 1 (PeriodicTimer, 5 min prod / 30s dev)
+    |       → DbOrderChecker, DbHealthChecker, JobsChecker
     |
-    +-- loop: while await timer.WaitForNextTickAsync(stoppingToken)
-    |           Task.WhenAll([
-    |               RunCheckAsync(DbOrderChecker,  stoppingToken),
-    |               RunCheckAsync(DbHealthChecker, stoppingToken),
-    |               RunCheckAsync(JobsChecker,     stoppingToken)
-    |           ])
+    +-- Timer 2 (PeriodicTimer, 5 min prod / 1 min dev)
+    |       → SalesforceApiChecker, MultivendeApiChecker
     |
-    +-- [stoppingToken cancelado] --> exit loop → graceful shutdown
+    +-- Timer 3 dinámico (Task.Delay loop — re-lee config cada iteración)
+    |       → BrandMonitorChecker (3 min prod / 1 min dev)
+    |       (permite cambiar la frecuencia en appsettings sin reiniciar)
+    |
+    +-- Task.WhenAll(Timer1Loop, Timer2Loop, Timer3Loop)
+    |
+    +-- [stoppingToken cancelado] → graceful shutdown
+
+Configuración (appsettings.json):
+    CheckerIntervalMinutes:            5  (prod) / 0.5 (dev)
+    ApiCheckerIntervalMinutes:         5  (prod) / 1   (dev)
+    BrandMonitorPollIntervalMinutes:   3  (prod) / 1   (dev)
+    CheckerTimeoutMs:              30000
 ```
 
-Cada `RunCheckAsync` tiene su propio try-catch — un checker que falla no cancela el `WhenAll` (BR-SCHED-03).
+Cada `RunCheckAsync` tiene su propio try-catch — un checker que falla no cancela los demás (BR-SCHED-03).
 
 ---
 
-## §10 Dependencias entre bounded contexts
+## §10 Dependencias entre bounded contexts — actualizado IT1/IT7/IT9
 
 ```
 U3 (Monitoring)
     |-- consume --> IIncidentService          (U2 — abrir / cerrar incidentes)
-    |-- consume --> IOrderSource              (U3 Sprint2: SimulatedOrderRepository)
-    |-- consume --> IJobStatusSource          (U3 Sprint2: SimulatedJobStatusRepository)
+    |-- consume --> IOrderSource              (IT1: ProductionOrderRepository — SQL Server, solo lectura)
+    |-- consume --> IJobStatusSource          (IT5: TaskSchedulerJobStatusRepository — schtasks.exe)
+    |-- consume --> ISalesforceClient         (IT7: BrandMonitorChecker — conteos reales por site)
     |-- produce --> AlertMessage              (U2 — persistido en Incident.Alert)
-    |-- notifica -> INotificationService      (U6 — broadcast; stub en Sprint 2)
-    |-- extiende -> CauseClassifier._map      (U4 agregará Api y Token en _map)
+    |-- notifica -> INotificationService      (U6 — broadcast real)
+    |-- extiende -> CauseClassifier._map      (U4: Api y Token agregados)
+    |-- actualiza -> LastCheckStore           (IT9: siempre actualizado, incluso en fallo del checker)
 ```
 
 ---

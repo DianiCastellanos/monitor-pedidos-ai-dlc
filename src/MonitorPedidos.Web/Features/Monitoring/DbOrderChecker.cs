@@ -21,6 +21,19 @@ public sealed class DbOrderChecker : ICheckExecutor
 
     public async Task<CheckResult> ExecuteAsync(CancellationToken ct = default)
     {
+        try
+        {
+        return await ExecuteInternalAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("[DbOrderChecker] Sin acceso a BD: {Msg}", ex.Message);
+            return CheckResult.Critical("Sin acceso a BD de pedidos");
+        }
+    }
+
+    private async Task<CheckResult> ExecuteInternalAsync(CancellationToken ct)
+    {
         var rules = await _ruleRepo.GetActiveByModuleAsync(ModuleId.DbOrderChecker, ct);
 
         int      windowMinutes;
@@ -81,3 +94,4 @@ public sealed class DbOrderChecker : ICheckExecutor
         return result;
     }
 }
+

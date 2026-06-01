@@ -23,28 +23,66 @@ public sealed class MonitoringSchedulerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var monitorMin = _config.GetValue("Monitoring:CheckerIntervalMinutes",    5);
-        var apiMin     = _config.GetValue("Monitoring:ApiCheckerIntervalMinutes", 10);
+        var monitorMin = _config.GetValue("Monitoring:CheckerIntervalMinutes",    5.0);
+        var apiMin     = _config.GetValue("Monitoring:ApiCheckerIntervalMinutes", 10.0);
+        var brandMin   = _config.GetValue("Monitoring:BrandMonitorPollIntervalMinutes", 3.0);
 
         _logger.LogInformation(
-            "MonitoringSchedulerService started — monitor: {M} min, api: {A} min",
-            monitorMin, apiMin);
+            "MonitoringSchedulerService started — monitor: {M} min, api: {A} min, brand: {B} min | rid=",
+            monitorMin, apiMin, brandMin);
 
-        // ADR-U3-03: PeriodicTimer elimina deriva acumulada
         using var monitorTimer = new PeriodicTimer(TimeSpan.FromMinutes(monitorMin));
         using var apiTimer     = new PeriodicTimer(TimeSpan.FromMinutes(apiMin));
 
-        // ADR-U4-03: dos loops independientes con cadencias distintas
         await Task.WhenAll(
             RunTimerLoopAsync(monitorTimer, IsMonitorChecker, stoppingToken),
-            RunTimerLoopAsync(apiTimer,     IsApiChecker,     stoppingToken));
+            RunTimerLoopAsync(apiTimer,     IsApiChecker,     stoppingToken),
+            RunBrandTimerLoopAsync(stoppingToken));
+    }
+
+    // Loop dinámico: re-lee BrandMonitorPollIntervalMinutes en cada iteración.
+    // Cambiar appsettings.json en caliente actualiza el intervalo en el próximo tick.
+    private async Task RunBrandTimerLoopAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            var brandMin  = _config.GetValue("Monitoring:BrandMonitorPollIntervalMinutes", 3.0);
+            var timeoutMs = _config.GetValue("Monitoring:CheckerTimeoutMs", 30_000);
+
+            try { await Task.Delay(TimeSpan.FromMinutes(brandMin), stoppingToken); }
+            catch (OperationCanceledException) { break; }
+
+            using var scope  = _scopeFactory.CreateScope();
+            var checkers     = scope.ServiceProvider
+                                    .GetRequiredService<IEnumerable<ICheckExecutor>>()
+                                    .Where(IsBrandMonitorChecker);
+            var svc          = scope.ServiceProvider.GetRequiredService<IMonitoringService>();
+
+            foreach (var checker in checkers)
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                cts.CancelAfter(timeoutMs);
+                try { await svc.RunCheckAsync(checker, cts.Token); }
+                catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning("BrandMonitorChecker timed out after {Ms} ms", timeoutMs);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected failure in BrandMonitorChecker");
+                }
+            }
+        }
     }
 
     private static bool IsMonitorChecker(ICheckExecutor c) =>
         c is DbOrderChecker or DbHealthChecker or JobsChecker;
 
     private static bool IsApiChecker(ICheckExecutor c) =>
-        c is SalesforceApiChecker or MultivendeApiChecker or BrandMonitorChecker;
+        c is SalesforceApiChecker or MultivendeApiChecker;
+
+    private static bool IsBrandMonitorChecker(ICheckExecutor c) =>
+        c is BrandMonitorChecker;
 
     private async Task RunTimerLoopAsync(
         PeriodicTimer timer,
@@ -54,7 +92,6 @@ public sealed class MonitoringSchedulerService : BackgroundService
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             using var scope  = _scopeFactory.CreateScope();
-            // ADR-U3-02: IEnumerable<ICheckExecutor> resuelve todos los registrados
             var checkers     = scope.ServiceProvider
                                     .GetRequiredService<IEnumerable<ICheckExecutor>>()
                                     .Where(filter);
@@ -63,7 +100,6 @@ public sealed class MonitoringSchedulerService : BackgroundService
 
             foreach (var checker in checkers)
             {
-                // ADR-U3-01: token por checker — timeout aislado del shutdown
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
                 cts.CancelAfter(timeoutMs);
 

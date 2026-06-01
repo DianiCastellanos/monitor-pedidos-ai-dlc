@@ -7,6 +7,7 @@ using MonitorPedidos.Domain.Monitoring;
 using MonitorPedidos.Domain.Notifications;
 using MonitorPedidos.Web.Features.ApiChecks;
 using MonitorPedidos.Infrastructure.Incidents;
+using MonitorPedidos.Infrastructure.JobMonitoring;
 using MonitorPedidos.Infrastructure.Logging;
 // NullNotificationService reemplazado por NotificationService en U6
 using MonitorPedidos.Infrastructure.Persistence;
@@ -120,7 +121,15 @@ else
     builder.Services.AddScoped<IOrderSource, SimulatedOrderRepository>();
 
 builder.Services.AddScoped<ISimulatedOrderRepository,     SimulatedOrderRepository>();
-builder.Services.AddScoped<IJobStatusSource,              SimulatedJobStatusRepository>();
+// JobsMonitor — real desde Task Scheduler, con fallback a simulación
+builder.Services.Configure<JobsMonitorOptions>(
+    builder.Configuration.GetSection(JobsMonitorOptions.Section));
+
+if (!string.IsNullOrEmpty(builder.Configuration.GetSection(JobsMonitorOptions.Section)["Server"]))
+    builder.Services.AddScoped<IJobStatusSource, SchtasksJobStatusSource>();
+else
+    builder.Services.AddScoped<IJobStatusSource, SimulatedJobStatusRepository>();
+
 builder.Services.AddScoped<ISimulatedJobStatusRepository, SimulatedJobStatusRepository>();
 builder.Services.AddHostedService<OrdersSimulatorService>();
 // ─────────────────────────────────────────────────────────────────────────
@@ -135,18 +144,22 @@ builder.Services.AddScoped<IRuleManagementService, RuleManagementService>();
 builder.Services.AddScoped<ICheckExecutor, SalesforceApiChecker>();
 builder.Services.AddScoped<ICheckExecutor, MultivendeApiChecker>();
 
+// Salesforce OAuth2 — singleton para caché de token + handler para inyección automática
+builder.Services.AddSingleton<SalesforceTokenCache>();
+builder.Services.AddTransient<SalesforceAuthHandler>();
+
+// HttpClient dedicado para el endpoint de token OAuth2 (host raíz, sin site path)
+builder.Services.AddHttpClient("SalesforceAuth", c => { c.Timeout = TimeSpan.FromSeconds(10); });
+
 // ADR-U4-02: Typed HTTP clients con política Polly compartida por instancia de request
 builder.Services
     .AddHttpClient<ISalesforceClient, SalesforceClient>(c =>
     {
-        var baseUrl = builder.Configuration["Salesforce:BaseUrl"];
-        if (!string.IsNullOrEmpty(baseUrl))
-            c.BaseAddress = new Uri(baseUrl);
-        c.Timeout = TimeSpan.FromSeconds(10);
-        var apiKey = builder.Configuration["Salesforce:ApiKey"];
-        if (!string.IsNullOrEmpty(apiKey))
-            c.DefaultRequestHeaders.Authorization = new("Bearer", apiKey);
+        // Sin BaseAddress — SalesforceClient construye URLs absolutas por site (Salesforce:Sites[])
+        c.Timeout = TimeSpan.FromSeconds(15);
+        // Bearer token inyectado por SalesforceAuthHandler
     })
+    .AddHttpMessageHandler<SalesforceAuthHandler>()
     .AddPolicyHandler((services, _) =>
         ApiRetryPolicy.Create(services.GetRequiredService<ILoggerFactory>().CreateLogger("ApiRetryPolicy")));
 
