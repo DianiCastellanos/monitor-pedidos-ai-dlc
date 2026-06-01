@@ -41,36 +41,65 @@ public sealed class MonitoringSchedulerService : BackgroundService
     }
 
     // Loop dinámico: re-lee BrandMonitorPollIntervalMinutes en cada iteración.
-    // Cambiar appsettings.json en caliente actualiza el intervalo en el próximo tick.
     private async Task RunBrandTimerLoopAsync(CancellationToken stoppingToken)
     {
+        // Correr inmediatamente al arrancar — sin esperar el primer tick
+        await ExecuteCheckersAsync(IsBrandMonitorChecker, stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
-            var brandMin  = _config.GetValue("Monitoring:BrandMonitorPollIntervalMinutes", 3.0);
-            var timeoutMs = _config.GetValue("Monitoring:CheckerTimeoutMs", 30_000);
+            var brandMin = _config.GetValue("Monitoring:BrandMonitorPollIntervalMinutes", 3.0);
 
             try { await Task.Delay(TimeSpan.FromMinutes(brandMin), stoppingToken); }
             catch (OperationCanceledException) { break; }
 
-            using var scope  = _scopeFactory.CreateScope();
-            var checkers     = scope.ServiceProvider
-                                    .GetRequiredService<IEnumerable<ICheckExecutor>>()
-                                    .Where(IsBrandMonitorChecker);
-            var svc          = scope.ServiceProvider.GetRequiredService<IMonitoringService>();
+            await ExecuteCheckersAsync(IsBrandMonitorChecker, stoppingToken);
+        }
+    }
 
-            foreach (var checker in checkers)
+    private async Task RunTimerLoopAsync(
+        PeriodicTimer timer,
+        Func<ICheckExecutor, bool> filter,
+        CancellationToken stoppingToken)
+    {
+        // Correr inmediatamente al arrancar — sin esperar el primer tick
+        await ExecuteCheckersAsync(filter, stoppingToken);
+
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            await ExecuteCheckersAsync(filter, stoppingToken);
+        }
+    }
+
+    // Lógica de ejecución extraída: compartida por startup y ticks periódicos
+    private async Task ExecuteCheckersAsync(
+        Func<ICheckExecutor, bool> filter,
+        CancellationToken stoppingToken)
+    {
+        using var scope   = _scopeFactory.CreateScope();
+        var checkers      = scope.ServiceProvider
+                                 .GetRequiredService<IEnumerable<ICheckExecutor>>()
+                                 .Where(filter);
+        var svc           = scope.ServiceProvider.GetRequiredService<IMonitoringService>();
+        var timeoutMs     = _config.GetValue("Monitoring:CheckerTimeoutMs", 30_000);
+
+        foreach (var checker in checkers)
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+            cts.CancelAfter(timeoutMs);
+            try
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-                cts.CancelAfter(timeoutMs);
-                try { await svc.RunCheckAsync(checker, cts.Token); }
-                catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
-                {
-                    _logger.LogWarning("BrandMonitorChecker timed out after {Ms} ms", timeoutMs);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Unexpected failure in BrandMonitorChecker");
-                }
+                await svc.RunCheckAsync(checker, cts.Token);
+            }
+            catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("Checker {Type} timed out after {Ms} ms",
+                    checker.GetType().Name, timeoutMs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected failure in checker {Type}",
+                    checker.GetType().Name);
             }
         }
     }
@@ -83,41 +112,4 @@ public sealed class MonitoringSchedulerService : BackgroundService
 
     private static bool IsBrandMonitorChecker(ICheckExecutor c) =>
         c is BrandMonitorChecker;
-
-    private async Task RunTimerLoopAsync(
-        PeriodicTimer timer,
-        Func<ICheckExecutor, bool> filter,
-        CancellationToken stoppingToken)
-    {
-        while (await timer.WaitForNextTickAsync(stoppingToken))
-        {
-            using var scope  = _scopeFactory.CreateScope();
-            var checkers     = scope.ServiceProvider
-                                    .GetRequiredService<IEnumerable<ICheckExecutor>>()
-                                    .Where(filter);
-            var svc          = scope.ServiceProvider.GetRequiredService<IMonitoringService>();
-            var timeoutMs    = _config.GetValue("Monitoring:CheckerTimeoutMs", 30_000);
-
-            foreach (var checker in checkers)
-            {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-                cts.CancelAfter(timeoutMs);
-
-                try
-                {
-                    await svc.RunCheckAsync(checker, cts.Token);
-                }
-                catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
-                {
-                    _logger.LogWarning("Checker {Type} timed out after {Ms} ms",
-                        checker.GetType().Name, timeoutMs);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Unexpected failure in checker {Type}",
-                        checker.GetType().Name);
-                }
-            }
-        }
-    }
 }
