@@ -26,7 +26,10 @@ public sealed class TechnicalLogReader : ITechnicalLogReader
         if (filePath is null)
             return Task.FromResult<IReadOnlyList<LogLine>>(Array.Empty<LogLine>());
 
-        var rawLines = File.ReadLines(filePath).TakeLast(maxLines);
+        // FileShare.ReadWrite: permite leer mientras Serilog mantiene el archivo abierto para escritura
+        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        var rawLines     = ReadAllLines(reader).TakeLast(maxLines);
         var result   = new List<LogLine>();
         LogLine?    current = null;
 
@@ -71,6 +74,13 @@ public sealed class TechnicalLogReader : ITechnicalLogReader
 
     public string ExportJson(IReadOnlyList<LogLine> lines)
         => JsonSerializer.Serialize(lines, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+    private static IEnumerable<string> ReadAllLines(StreamReader reader)
+    {
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+            yield return line;
+    }
 
     private static string? ResolveFilePath(string configured)
     {
