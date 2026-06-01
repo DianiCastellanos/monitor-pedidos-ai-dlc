@@ -27,18 +27,18 @@
         </p>
     </div>
     <div class="d-flex gap-2 align-items-center flex-wrap">
-        <button class="btn btn-outline-secondary btn-sm" @onclick="ManualRefreshAsync" disabled="@_refreshing">
+        <button class="btn btn-outline-secondary btn-sm" data-testid="btn-check-now" @onclick="ManualRefreshAsync" disabled="@_refreshing">
             @if (_refreshing) { <span class="spinner-border spinner-border-sm me-1"></span> }
             &#9889; Chequear ahora
         </button>
-        <span class="badge fs-6 px-3 py-2 bg-@_overallColor">&#9679; @_overallText</span>
+        <span class="badge fs-6 px-3 py-2 bg-@_overallColor" data-testid="overall-status" data-color="@_overallColor">&#9679; @_overallText</span>
     </div>
 </div>
 
 <div class="row g-3 mb-4">
     @foreach (var d in _domains)
     {
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-3" data-testid="domain-card-@d.Code">
             <div class="card shadow-sm h-100">
                 <div class="card-body text-center py-3 px-2">
                     <div class="text-muted mb-1" style="font-size:0.75rem;font-weight:600;letter-spacing:.05em">@d.Code</div>
@@ -186,10 +186,10 @@ else
     }
 </p>
 
-<div class="d-flex align-items-center mb-2">
+<div class="d-flex align-items-center mb-2" data-testid="brand-monitor-header">
     <h5 class="mb-0">Brand Monitor</h5>
     <span class="text-muted small ms-2">— pedidos pendientes por marca</span>
-    <button class="btn btn-outline-secondary btn-sm ms-auto" @onclick="() => RefreshBrandAsync(true)" disabled="@(_brandLoading || _brandRefreshing)">
+    <button class="btn btn-outline-secondary btn-sm ms-auto" data-testid="btn-brand-refresh" @onclick="() => RefreshBrandAsync(true)" disabled="@(_brandLoading || _brandRefreshing)">
         @if (_brandRefreshing) { <span class="spinner-border spinner-border-sm me-1"></span><span>Actualizando...</span> }
         else { <span>&#8635; Actualizar</span> }
     </button>
@@ -204,7 +204,7 @@ else
 
 @if (_brandLoading)
 {
-    <p class="text-muted small">Cargando datos de marcas...</p>
+    <p data-testid="brand-loading" class="text-muted small">Cargando datos de marcas...</p>
 }
 else if (!_brandSnapshots.Any())
 {
@@ -213,7 +213,7 @@ else if (!_brandSnapshots.Any())
         <div class="alert alert-warning py-2 mb-2">
             ⚠ <strong>Tiempo real</strong> · BD no disponible — datos consultados ahora en Salesforce, sin historial
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive" data-testid="brand-monitor-table">
             <table class="table table-sm table-hover align-middle">
                 <thead class="table-light">
                     <tr>
@@ -247,7 +247,7 @@ else if (!_brandSnapshots.Any())
             <div class="alert alert-warning py-2 mb-2">
                 ⚠ <strong>Datos en tiempo real</strong> · BD no disponible — sin comparación histórica
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive" data-testid="brand-monitor-table">
                 <table class="table table-sm table-hover align-middle">
                     <thead class="table-light">
                         <tr>
@@ -278,7 +278,7 @@ else if (!_brandSnapshots.Any())
             <div class="alert alert-warning py-2 mb-2">
                 ⚠ <strong>BD no disponible</strong> · Esperando primer ciclo del checker — datos en camino
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive" data-testid="brand-monitor-table">
                 <table class="table table-sm table-hover align-middle">
                     <thead class="table-light">
                         <tr>
@@ -308,7 +308,7 @@ else if (!_brandSnapshots.Any())
     else
     {
         <div class="alert alert-secondary py-2 mb-2">Sin datos aún — esperando primer ciclo del scheduler</div>
-        <div class="table-responsive">
+        <div class="table-responsive" data-testid="brand-monitor-table">
             <table class="table table-sm table-hover align-middle">
                 <thead class="table-light">
                     <tr>
@@ -337,7 +337,7 @@ else if (!_brandSnapshots.Any())
 }
 else
 {
-    <div class="table-responsive">
+    <div class="table-responsive" data-testid="brand-monitor-table">
         <table class="table table-sm table-hover align-middle">
             <thead class="table-light">
                 <tr>
