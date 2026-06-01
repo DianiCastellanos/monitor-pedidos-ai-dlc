@@ -1,9 +1,9 @@
 # Plan de Pruebas E2E — Playwright
 ## MonitorPedidos NOC — Fase VALIDATE
 
-**Versión**: 1.0  
+**Versión**: 1.2  
 **Fecha**: 2026-06-01  
-**Estado**: EJECUTADO — 6/6 passing  
+**Estado**: EJECUTADO — 16/16 passing (10 funcionales + 3 Dashboard + 3 RT Bloque 1)  
 **Proyecto tests**: `tests/e2e/`  
 **URL base**: `http://localhost:5000`
 
@@ -193,28 +193,60 @@ Escala de severidad: `critical (3) > warn (2) > ok (1) > unknown (0)`
 
 ---
 
-## 8. Ejecución de referencia
+## 8. Ejecución de referencia — suite completa
 
 ```
-Running 6 tests using 5 workers
+Running 10 tests using 9 workers
 
-  ok T1 — NOC carga correctamente                          14.5s
+  ok T1 — NOC carga correctamente                          15.8s
   ok T2 — M3 muestra detalle por API                       13.2s
   ok T3 — M3 estado global = peor estado de sus APIs       12.9s
-  ok T4 — Brand Monitor siempre visible                    32.1s
-  ok T5 — M4 BD Salud visible con latencia o N/A           14.7s
-  ok T5 — M4 muestra estado crítico cuando reporta Critical 11.3s
+  ok T4 — Brand Monitor siempre visible                    33.5s
+  ok T5a — M4 BD Salud visible con latencia o N/A          14.7s
+  ok T5b — M4 muestra estado crítico cuando reporta Critical 11.3s
+  ok D1 — Dashboard carga sin errores                       4.1s
+  ok D2 — Brand Monitor siempre visible en Dashboard         3.1s
+  ok D3 — Botón Chequear ahora funciona                      5.4s
+  ok D4 — Refresh no destructivo Brand Monitor               5.4s
 
-  6 passed (34.1s)
+  10 passed (35.8s)
 ```
 
 ---
 
-## 9. Pendiente / Evolución futura
+## 9. Red-Team Bloque 1 — Validación RT-Persist · RT5 · RT7
+
+**Archivo**: `tests/e2e/tests/rt-bloque1.spec.ts`
+
+```
+Running 3 tests using 1 worker
+
+  ok RT-Persist — alertas persisten tras reinicio de app        1.9s
+  ok RT5 — panel de discrepancias UC6 existe y carga            0.8s
+  ok RT7 — M3 activo, filtro cancelados confirmado en código   11.4s
+
+  3 passed (17.2s)
+```
+
+Ver detalles completos en: `rt-bloque1-validacion.md`
+
+---
+
+## 10. Errores documentados
+
+| Error | Archivo | Estado |
+|---|---|---|
+| E1 — data-testid faltante en rama else Brand Monitor | errores-playwright-dashboard.md | ✅ Corregido |
+| E2 — estado disabled transitorio no detectable | errores-playwright-dashboard.md | ✅ Test rediseñado |
+| E3 — LogsPage falla para rol Técnico | rt-bloque1-validacion.md | ⚠️ Pendiente investigación |
+
+---
+
+## 11. Pendiente / Evolución futura
 
 | Item | Descripción |
 |---|---|
-| Dashboard tests | Crear suite equivalente para `/` (Dashboard principal) |
-| Auth roles | Agregar tests con rol Técnico para validar acceso |
-| Estado degradado | Test con BD caída simulada para validar graceful degradation |
+| Bloque 2 RT | RT3 (BD caída) y RT2 (token inválido) — simulación por .env |
+| Bloque 3 RT | RT1 (job deshabilitado) — acción en SR-SDEV02CO |
+| E3 — LogsPage | Investigar error en pre-rendering con JSRuntime |
 | CI/CD | Integrar `npx playwright test` en pipeline de despliegue |
