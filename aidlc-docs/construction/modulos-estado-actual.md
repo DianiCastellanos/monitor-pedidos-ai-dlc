@@ -2,8 +2,8 @@
 
 **Proyecto:** MonitorPedidos AI
 **Empresa:** Manufacturas Eliot (Pat Primo)
-**Fecha:** 2026-05-31
-**Versión:** 1.1 (2026-05-31 — añadida sección "Reglas Críticas del Sistema" con 5 invariantes explícitas)
+**Fecha:** 2026-06-01
+**Versión:** 1.2 (2026-06-01 — M11 diagnóstico mejorado: distingue timeout de red vs job deshabilitado; checkers arrancan inmediatamente al iniciar la app)
 
 ---
 
@@ -233,12 +233,14 @@ Windows Task Scheduler en `SR-SDEV02CO.patprimo.local` — consultado vía `scht
 
 ### Comportamiento degradado
 
-| Escenario | Estado M11 | Detalle |
-|-----------|------------|---------|
-| Job activo y exitoso | Ok | "Job OC_PATPRIMO activo" |
-| Job falló última ejecución | Critical | Descripción del fallo |
-| Servidor de jobs inaccesible (sin VPN) | Critical | "Sin acceso a jobs: timeout" |
-| Job deshabilitado | Critical | "Job deshabilitado" |
+| Escenario | Estado M11 | Mensaje en UI |
+|-----------|------------|---------------|
+| Job activo y exitoso | Ok | "Enabled" (verde) |
+| Servidor inaccesible / timeout red | Critical | `OC_PATPRIMO: Sin conexión a SR-SDEV02CO (timeout 10000ms)` |
+| Job deshabilitado (status != Ready) | Critical | `OC_PATPRIMO: Job Disabled — no está en estado Ready` |
+| Error de acceso al servidor | Critical | `OC_PATPRIMO: Error al consultar SR-SDEV02CO: ...` |
+
+**Nota de diagnóstico**: el sistema distingue "no puedo llegar al servidor" (problema de red/VPN) de "llegué pero el job está apagado". Esto evita confundir un problema de red con un job realmente deshabilitado.
 
 ### Dependencias
 

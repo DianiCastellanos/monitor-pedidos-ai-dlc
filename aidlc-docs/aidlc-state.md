@@ -36,10 +36,10 @@
 - **Detalle completo**: ver [`inception/plans/execution-plan.md`](inception/plans/execution-plan.md)
 
 ## Current Status
-- **Lifecycle Phase**: CONSTRUCTION — COMPLETO ✅
-- **Current Stage**: Build & Test — EJECUTADO 2026-05-28
-- **Next Stage**: OPERATIONS (placeholder — sin activar)
-- **Status**: ✅ CÓDIGO GENERADO U1–U7. Build & Test completado: 50/50 tests (45 unit + 5 integration). 5 migraciones aplicadas. App arranca correctamente. MVP listo para demo.
+- **Lifecycle Phase**: 🟡 **OPERATIONS** — activa desde 2026-06-01
+- **Current Stage**: VALIDATE completado ✅ — pruebas E2E Playwright + 6 escenarios RT del PRD
+- **Next Stage**: Deploy / mantenimiento continuo
+- **Status**: ✅ 24/24 tests Playwright passing. 6/6 RT del PRD Segmento 11 validados. Todos los Must Have del PRD implementados y verificados. 6 fixes de código aplicados post-MVP.
 
 ## Stage Progress
 
@@ -161,5 +161,30 @@
   - `NocPage.razor`: fallback desde `LastCheckStore` cuando incidentes no cargables
   - Artefactos: `construction/iteraciones/it9-graceful-degradation/` · Plan: `plans/it9-graceful-degradation-plan.md`
 
+### VALIDATE Phase — 2026-06-01
+
+#### IT-VALIDATE — Pruebas E2E Playwright
+
+- [x] **Configuración Playwright** — `tests/e2e/` con TypeScript, Chromium, helper auth
+- [x] **data-testid instrumentación** — NocCard, NocPage, BrandMonitorTable, Dashboard (17 atributos)
+- [x] **Suite NOC** — T1–T5 (6 tests): carga, M3 detalle, M3 peor estado, Brand Monitor refresh, M4 estado
+- [x] **Suite Dashboard** — D1–D4 (4 tests): carga, Brand Monitor visible, Chequear ahora, refresh no destructivo
+- [x] **Red-Team Bloque 1** — RT-Persist, RT5, RT7 (3 tests) — sin cambios de entorno
+- [x] **Red-Team Bloque 2** — RT3 BD caída, RT2 token inválido (7 tests) — vía .env temporal
+- [x] **Red-Team Bloque 3** — RT1 job deshabilitado (3 tests) — acción en SR-SDEV02CO
+- [x] **Error E3 LogsPage** — (1 test) — fix TechnicalLogReader FileShare.ReadWrite
+- [x] **Resultado final**: **24/24 tests passing** — NOC + Dashboard + 6 RT del PRD Segmento 11
+- [x] **Documentación**: `test-plan-playwright-resultados.md` (plan unificado + resultados)
+
+#### IT-FIX-JUNE — Fixes de código detectados durante VALIDATE
+
+- [x] **SalesforceApiChecker.cs** — mensaje HTTP 401 incluye "401" → activa BR-TOKEN-01 → template SOP-001
+- [x] **MonitoringSchedulerService.cs** — checkers corren inmediatamente al arrancar (sin esperar 5 min)
+- [x] **TechnicalLogReader.cs** — FileStream con FileShare.ReadWrite → LogsPage ya no falla con IOException
+- [x] **JobStatusSnapshot.cs** — nuevo campo `FailureReason` (nullable) para diagnóstico
+- [x] **SchtasksJobStatusSource.cs** — distingue timeout de red vs job deshabilitado en FailureReason
+- [x] **NocPage.razor** — muestra `FailureReason` en card M11 en lugar de "Disabled" hardcoded
+
 ### OPERATIONS Phase
-- [ ] Placeholder (future)
+- [ ] Deploy on-prem (pendiente decisión de negocio)
+- [ ] Configurar CI/CD para `npx playwright test` en pipeline
