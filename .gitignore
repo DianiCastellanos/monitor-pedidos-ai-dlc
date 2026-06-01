@@ -60,3 +60,10 @@ coverage/
 # Temp
 *.tmp
 *.bak
+app.err
+stderr-test.txt
+stdout-test.txt
+
+# Playwright test artifacts (reports, traces, screenshots)
+tests/e2e/playwright-report/
+tests/e2e/test-results/
