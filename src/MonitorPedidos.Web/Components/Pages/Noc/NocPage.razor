@@ -27,7 +27,7 @@
 
     @* M3 — APIs Externas (primero: errores críticos visibles inmediatamente) *@
     <div class="col-md-3">
-        <NocCard Title="APIs Externas M3" Status="@GetApisStatus()">
+        <NocCard Title="APIs Externas M3" Status="@GetApisStatus()" TestId="card-m3">
             <div style="padding:0.4rem 0; border-bottom:1px solid rgba(255,255,255,0.06);">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="font-weight:500;">Salesforce</span>
@@ -55,7 +55,7 @@
 
     @* M11 — Jobs *@
     <div class="col-md-3">
-        <NocCard Title="Jobs M11" Status="@GetModuleStatus(ModuleId.JobsMonitor)">
+        <NocCard Title="Jobs M11" Status="@GetModuleStatus(ModuleId.JobsMonitor)" TestId="card-m11">
             @if (_jobs is not null && _jobs.Count > 0)
             {
                 foreach (var j in _jobs)
@@ -77,7 +77,7 @@
 
     @* M2 — BD Pedidos *@
     <div class="col-md-3">
-        <NocCard Title="BD Pedidos M2" Status="@GetModuleStatus(ModuleId.DbOrderChecker)">
+        <NocCard Title="BD Pedidos M2" Status="@GetModuleStatus(ModuleId.DbOrderChecker)" TestId="card-m2">
             @if (_channels is not null)
             {
                 foreach (var c in _channels)
@@ -107,7 +107,7 @@
 
     @* M4 — BD Salud *@
     <div class="col-md-3">
-        <NocCard Title="BD Salud M4" Status="@GetModuleStatus(ModuleId.DbHealthChecker)">
+        <NocCard Title="BD Salud M4" Status="@GetModuleStatus(ModuleId.DbHealthChecker)" TestId="card-m4">
             <div style="font-size:1.1rem;">
                 Latencia: <strong style="font-size:1.8rem; color:#22c55e;">@GetLatency()</strong>
             </div>
@@ -301,7 +301,15 @@ else
 
     private RenderFragment ApiStatusBadge(ModuleId id) => builder =>
     {
-        var status = GetModuleStatus(id);
+        var status   = GetModuleStatus(id);
+        var testId   = id == ModuleId.SalesforceApi ? "api-status-sf" : "api-status-mv";
+        var statusName = status switch
+        {
+            CheckStatus.Ok       => "ok",
+            CheckStatus.Warn     => "warn",
+            CheckStatus.Critical => "critical",
+            _                    => "unknown"
+        };
         var color = status switch
         {
             CheckStatus.Ok       => "#22c55e",
@@ -317,9 +325,10 @@ else
             _                    => "Sin datos"
         };
         builder.OpenElement(0, "span");
-        builder.AddAttribute(1, "style",
-            $"color:{color}; font-weight:700; font-size:1rem;");
-        builder.AddContent(2, label);
+        builder.AddAttribute(1, "data-testid",  testId);
+        builder.AddAttribute(2, "data-status",  statusName);
+        builder.AddAttribute(3, "style", $"color:{color}; font-weight:700; font-size:1rem;");
+        builder.AddContent(4, label);
         builder.CloseElement();
     };
 
