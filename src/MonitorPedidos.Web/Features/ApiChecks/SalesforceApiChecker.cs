@@ -18,7 +18,7 @@ public sealed class SalesforceApiChecker(
         if (!outcome.IsSuccess)
         {
             var errorMsg = outcome.IsUnauthorized
-                ? $"Error de autenticación — token inválido o expirado"
+                ? $"HTTP 401 — token inválido o expirado"   // "401" activa BR-TOKEN-01 en MonitoringService
                 : outcome.IsTimeout
                     ? "Sin respuesta — timeout al conectar con Salesforce"
                     : $"Error de conexión — {outcome.ErrorDetails}";
