@@ -72,7 +72,7 @@ public sealed class SchtasksJobStatusSource : IJobStatusSource
                 "schtasks /QUERY para {Task} en {Server} excedió el timeout de {T}ms",
                 _options.TaskName, _options.Server, _options.CommandTimeoutMs);
 
-            snapshot = CreateFailedSnapshot();
+            snapshot = CreateFailedSnapshot($"Sin conexión a {_options.Server} (timeout {_options.CommandTimeoutMs}ms)");
         }
         catch (Exception ex)
         {
@@ -80,15 +80,15 @@ public sealed class SchtasksJobStatusSource : IJobStatusSource
                 "Error ejecutando schtasks /QUERY para {Task} en {Server}",
                 _options.TaskName, _options.Server);
 
-            snapshot = CreateFailedSnapshot();
+            snapshot = CreateFailedSnapshot($"Error al consultar {_options.Server}: {ex.Message[..Math.Min(50, ex.Message.Length)]}");
         }
 
         results.Add(snapshot);
         return results;
     }
 
-    private JobStatusSnapshot CreateFailedSnapshot()
-        => new(_options.TaskName, _options.TaskName, false, null, false);
+    private JobStatusSnapshot CreateFailedSnapshot(string reason = "Sin acceso al servidor")
+        => new(_options.TaskName, _options.TaskName, false, null, false, FailureReason: reason);
 
     private JobStatusSnapshot ParseOutput(string stdout, string stderr)
     {
@@ -107,14 +107,16 @@ public sealed class SchtasksJobStatusSource : IJobStatusSource
             "schtasks /QUERY {Task} en {Server}: status={Status}",
             _options.TaskName, _options.Server, status);
 
-        var isReady = string.Equals(status, "Ready", StringComparison.OrdinalIgnoreCase);
+        var isReady      = string.Equals(status, "Ready", StringComparison.OrdinalIgnoreCase);
+        var failureReason = isReady ? null : $"Job {status} — no está en estado Ready";
 
         return new JobStatusSnapshot(
             _options.TaskName,
             _options.TaskName,
             IsRunning:              isReady,
             LastExecutedAt:         null,
-            LastExecutionSucceeded: isReady);
+            LastExecutionSucceeded: isReady,
+            FailureReason:          failureReason);
     }
 
     private static string[] SplitCsvLine(string line)

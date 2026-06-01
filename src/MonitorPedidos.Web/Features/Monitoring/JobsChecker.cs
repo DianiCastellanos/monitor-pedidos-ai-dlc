@@ -18,10 +18,13 @@ public sealed class JobsChecker : ICheckExecutor
             var jobs   = await _jobSource.GetCurrentStatusAsync(ct);
             var failed = jobs.Where(j => !j.IsRunning || !j.LastExecutionSucceeded).ToList();
 
-            return failed.Count == 0
-                ? CheckResult.Ok($"{jobs.Count} job(s) activos y saludables.")
-                : CheckResult.Critical(
-                    $"{failed.Count} job(s) fallido(s): {string.Join(", ", failed.Select(j => j.JobName))}");
+            if (failed.Count == 0)
+                return CheckResult.Ok($"{jobs.Count} job(s) activos y saludables.");
+
+            // Incluir FailureReason cuando está disponible — distingue timeout de job deshabilitado
+            var details = string.Join(" | ", failed.Select(j =>
+                j.FailureReason is not null ? $"{j.JobName}: {j.FailureReason}" : j.JobName));
+            return CheckResult.Critical(details);
         }
         catch (Exception ex)
         {

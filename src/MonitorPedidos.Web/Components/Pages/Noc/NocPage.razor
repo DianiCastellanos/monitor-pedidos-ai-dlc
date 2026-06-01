@@ -60,10 +60,21 @@
             {
                 foreach (var j in _jobs)
                 {
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0; gap:0.5rem;">
                         <span style="font-weight:500;">@j.JobName</span>
-                        <span style="color:@(j.IsRunning ? "#22c55e" : "#ef4444"); font-size:1.2rem; font-weight:700;">
-                            @(j.IsRunning ? "Enabled" : "Disabled")
+                        <span style="color:@(j.IsRunning ? "#22c55e" : "#ef4444"); font-size:@(j.IsRunning ? "1.2rem" : "0.85rem"); font-weight:700; text-align:right;">
+                            @if (j.IsRunning)
+                            {
+                                <span>Enabled</span>
+                            }
+                            else if (j.FailureReason is not null)
+                            {
+                                <span>@j.FailureReason</span>
+                            }
+                            else
+                            {
+                                <span>Disabled</span>
+                            }
                         </span>
                     </div>
                 }
