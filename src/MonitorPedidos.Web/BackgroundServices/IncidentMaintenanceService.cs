@@ -1,3 +1,4 @@
+using MonitorPedidos.Domain.Dashboard;
 using MonitorPedidos.Domain.Incidents;
 
 namespace MonitorPedidos.Web.BackgroundServices;
@@ -24,12 +25,13 @@ public sealed class IncidentMaintenanceService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await RunPurgeAsync(stoppingToken);
+            await RunIncidentPurgeAsync(stoppingToken);
+            await RunSnapshotPurgeAsync(stoppingToken);
             await Task.Delay(Interval, stoppingToken);
         }
     }
 
-    private async Task RunPurgeAsync(CancellationToken ct)
+    private async Task RunIncidentPurgeAsync(CancellationToken ct)
     {
         var retentionDays = _config.GetValue<int>("Incidents:RetentionDays", 90);
         try
@@ -45,6 +47,27 @@ public sealed class IncidentMaintenanceService : BackgroundService
         {
             _logger.LogError(ex,
                 "Incident purge failed. RetentionDays={Days}", retentionDays);
+        }
+    }
+
+    // IT3 Paso 7 — retención de snapshots Brand Monitor (configurable, default 48h)
+    private async Task RunSnapshotPurgeAsync(CancellationToken ct)
+    {
+        var retentionHours = _config.GetValue<int>("BrandMonitor:SnapshotRetentionHours", 48);
+        var cutoff         = DateTime.UtcNow.AddHours(-retentionHours);
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IBrandSnapshotRepository>();
+            await repo.DeleteOlderThanAsync(cutoff, ct);
+            _logger.LogInformation(
+                "Brand snapshot purge completed. RetentionHours={Hours} Cutoff={Cutoff:u}",
+                retentionHours, cutoff);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex,
+                "Brand snapshot purge failed. RetentionHours={Hours}", retentionHours);
         }
     }
 }
