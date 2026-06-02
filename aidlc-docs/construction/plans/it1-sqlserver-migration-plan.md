@@ -1,4 +1,4 @@
-# Plan IT1 — Migración PostgreSQL → SQL Server + Dual DB
+﻿# Plan IT1 — Migración PostgreSQL → SQL Server + Dual DB
 
 **Fecha:** 2026-05-30  
 **Estado:** ✅ Completado
@@ -14,7 +14,7 @@ Migrar el proveedor de BD de PostgreSQL a SQL Server (infraestructura de la empr
 | # | Decisión | Opción elegida | Razón |
 |---|----------|----------------|-------|
 | D1 | Proveedor EF Core | SQL Server (`Microsoft.EntityFrameworkCore.SqlServer`) | Infraestructura real de la empresa |
-| D2 | Lectura de pedidos reales | Dapper contra `vtainternet_qa` | Solo SELECT — no queremos EF Core con migraciones en la BD de producción |
+| D2 | Lectura de pedidos reales | Dapper contra `<NOMBRE_BD_PRODUCCION>` | Solo SELECT — no queremos EF Core con migraciones en la BD de producción |
 | D3 | Registro de `IOrderSource` | Condicional en `Program.cs` según `ProductionDb` string | Dev usa simulador; prod usa `ProductionOrderRepository` automáticamente |
 | D4 | Credenciales | `.env` gitignored + placeholders en `appsettings.json` | Evita credenciales versionadas |
 

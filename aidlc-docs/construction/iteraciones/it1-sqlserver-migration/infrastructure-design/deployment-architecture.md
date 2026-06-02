@@ -1,4 +1,4 @@
-# IT1 — Migración PostgreSQL → SQL Server · Infrastructure Design
+﻿# IT1 — Migración PostgreSQL → SQL Server · Infrastructure Design
 
 **Fecha:** 2026-05-30  
 **Iteración:** IT1 — PostgreSQL → SQL Server + Dual DB  
@@ -28,9 +28,9 @@
 |        |                    simulated_orders
 |        |                    simulated_job_statuses
 |        |
-|        |-- Dapper ------> [192.168.20.91]
+|        |-- Dapper ------> [<IP_SERVIDOR_BD>]
 |                            SQL Server
-|                            vtainternet_qa
+|                            <NOMBRE_BD_PRODUCCION>
 |                            (Prod DB — READ ONLY)
 |                                   |
 |                             oc_encabezado
@@ -47,7 +47,7 @@
 
 ```env
 ConnectionStrings__DefaultConnection=Server=172.16.0.41;Database=MonitorPedidosDb;User Id=<usuario>;Password=<password>;TrustServerCertificate=True;Encrypt=True
-ConnectionStrings__ProductionDb=Server=192.168.20.91;Database=vtainternet_qa;User Id=<usuario_readonly>;Password=<password>;TrustServerCertificate=True;Encrypt=True
+ConnectionStrings__ProductionDb=Server=<IP_SERVIDOR_BD>;Database=<NOMBRE_BD_PRODUCCION>;User Id=<usuario_readonly>;Password=<password>;TrustServerCertificate=True;Encrypt=True
 ```
 
 ### `appsettings.json` (versionado — solo placeholders)
@@ -73,7 +73,7 @@ El usuario necesita:
 - `CREATE TABLE`, `ALTER TABLE` (para migraciones EF Core)
 - `INSERT`, `UPDATE`, `DELETE`, `SELECT` (operaciones de negocio)
 
-### Prod DB — 192.168.20.91 (vtainternet_qa)
+### Prod DB — <IP_SERVIDOR_BD> (<NOMBRE_BD_PRODUCCION>)
 
 El usuario necesita **solo**:
 - `SELECT` en tabla `oc_encabezado`
@@ -87,7 +87,7 @@ Sin permisos de escritura. Validado por convención de código — `ProductionOr
 | # | Tarea | Responsable |
 |---|-------|-------------|
 | 1 | Crear usuario en 172.16.0.41 con permisos R/W en MonitorPedidosDb | DBA |
-| 2 | Crear usuario en 192.168.20.91 con solo SELECT en `oc_encabezado` | DBA |
+| 2 | Crear usuario en <IP_SERVIDOR_BD> con solo SELECT en `oc_encabezado` | DBA |
 | 3 | Actualizar `.env` con credenciales reales | Owner |
 | 4 | Ejecutar `dotnet ef database update` contra App DB | Owner |
 | 5 | M11 Jobs — integrar con Windows Task Scheduler real | Dev |

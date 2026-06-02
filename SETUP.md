@@ -1,4 +1,4 @@
-# MonitorPedidos — Guía de Setup y Ejecución
+﻿# MonitorPedidos — Guía de Setup y Ejecución
 
 ## Prerequisitos
 
@@ -31,13 +31,13 @@ Hay dos bases de datos:
 | Conexión | Servidor | Base de Datos | Provider | Uso |
 |---|---|---|---|---|
 | `DefaultConnection` | 172.16.0.41 | MonitorPedidosDb | EF Core (SQL Server) | Incidents, Rules, Snapshots, Simulación |
-| `ProductionDb` | 192.168.20.91 | vtainternet_qa | Dapper (solo SELECT) | `oc_encabezado` (M2) |
+| `ProductionDb` | <IP_SERVIDOR_BD> | <NOMBRE_BD_PRODUCCION> | Dapper (solo SELECT) | `oc_encabezado` (M2) |
 
 Las credenciales se cargan desde un archivo `.env` (gitignored) al arrancar la aplicación:
 
 ```env
 ConnectionStrings__DefaultConnection=Server=172.16.0.41;Database=MonitorPedidosDb;User Id=Vtainternet;Password=Vta123;TrustServerCertificate=True;Encrypt=True
-ConnectionStrings__ProductionDb=Server=192.168.20.91;Database=vtainternet_qa;User Id=salesviewer;Password=Ab321;TrustServerCertificate=True;Encrypt=True
+ConnectionStrings__ProductionDb=Server=<IP_SERVIDOR_BD>;Database=<NOMBRE_BD_PRODUCCION>;User Id=<DB_USER>;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True
 ```
 
 > ⚠️ Nunca subir cadenas de conexión reales al repositorio. El archivo `.env` está en `.gitignore`. Los `appsettings.json` contienen placeholders vacíos.

@@ -1,4 +1,4 @@
-# Plan Red-Team — Bloque 2
+﻿# Plan Red-Team — Bloque 2
 ## RT3 (BD caída) · RT2 (Token Salesforce inválido)
 
 **Fecha**: 2026-06-01  
@@ -37,8 +37,8 @@ requieren esperar el intervalo configurado. En `Development`:
 ### Config a cambiar temporalmente
 ```
 # ANTES (original)
-ConnectionStrings__DefaultConnection=Server=tcp:192.168.20.91,1433;...
-ConnectionStrings__ProductionDb=Server=tcp:192.168.20.91,1433;...
+ConnectionStrings__DefaultConnection=Server=tcp:<IP_SERVIDOR_BD>,1433;...
+ConnectionStrings__ProductionDb=Server=tcp:<IP_SERVIDOR_BD>,1433;...
 
 # DURANTE TEST (IP inválida → falla en 5s por Connect Timeout=5)
 ConnectionStrings__DefaultConnection=Server=tcp:192.168.20.99,1433;...

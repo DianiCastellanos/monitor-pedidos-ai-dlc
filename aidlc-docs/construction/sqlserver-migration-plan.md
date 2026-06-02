@@ -1,4 +1,4 @@
-# Plan de Migración: PostgreSQL → SQL Server + M2 Per-Channel
+﻿# Plan de Migración: PostgreSQL → SQL Server + M2 Per-Channel
 
 ## 1. Cambios de Base de Datos
 
@@ -7,7 +7,7 @@
 | Conexión | Servidor | Base de Datos | Provider | Uso |
 |----------|----------|---------------|----------|-----|
 | `DefaultConnection` | 172.16.0.41 | MonitorPedidosDb | EF Core (SQL Server) | Incidents, Rules, Snapshots, Simulación |
-| `ProductionDb` | 192.168.20.91 | vtainternet_qa | Dapper (solo SELECT) | `oc_encabezado` (M2) |
+| `ProductionDb` | <IP_SERVIDOR_BD> | <NOMBRE_BD_PRODUCCION> | Dapper (solo SELECT) | `oc_encabezado` (M2) |
 
 ### 1.2 Flujo de Migración
 
@@ -17,7 +17,7 @@ flowchart LR
     subgraph AppDB[App DB - 172.16.0.41]
         EF[EF Core Schema<br/>incidents, rules,<br/>brand_snapshots,<br/>simulated_*]
     end
-    subgraph ProdDB[Prod DB - 192.168.20.91]
+    subgraph ProdDB[Prod DB - <IP_SERVIDOR_BD>]
         OC[oc_encabezado<br/>Solo SELECT]
     end
     App -- EF Migrations --> AppDB
@@ -29,7 +29,7 @@ flowchart LR
 #### `.env` (gitignored — contiene credenciales reales)
 ```
 ConnectionStrings__DefaultConnection=Server=172.16.0.41;Database=MonitorPedidosDb;User Id=Vtainternet;Password=Vta123;TrustServerCertificate=True;Encrypt=True
-ConnectionStrings__ProductionDb=Server=192.168.20.91;Database=vtainternet_qa;User Id=salesviewer;Password=Ab321;TrustServerCertificate=True;Encrypt=True
+ConnectionStrings__ProductionDb=Server=<IP_SERVIDOR_BD>;Database=<NOMBRE_BD_PRODUCCION>;User Id=<DB_USER>;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True
 ```
 
 #### `src/MonitorPedidos.Web/appsettings.json` — Placeholders (sin credenciales)
@@ -204,7 +204,7 @@ App:   http://localhost:5000 corriendo
 ## 4. Pendientes para Producción
 
 1. **Credenciales App DB (172.16.0.41)** — Configurar usuario con permisos de escritura para EF Core
-2. **Credenciales Prod DB (192.168.20.91)** — Usuario solo SELECT (no DELETE/UPDATE/ALTER)
+2. **Credenciales Prod DB (<IP_SERVIDOR_BD>)** — Usuario solo SELECT (no DELETE/UPDATE/ALTER)
 3. **Actualizar `.env`** con las credenciales correctas
 4. **Ejecutar**: `dotnet ef database update` contra App DB
 5. **M11 Jobs** — Integrar con Windows Task Scheduler real (pendiente)

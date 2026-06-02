@@ -1,4 +1,4 @@
-# Plan IT7 — Salesforce → Brand Monitor Integration
+﻿# Plan IT7 — Salesforce → Brand Monitor Integration
 
 **Fecha:** 2026-05-30  
 **Estado:** ✅ Completado — validado 2026-05-30  
@@ -124,5 +124,5 @@ MonitoringSchedulerService (cada 1 min)
 ## Restricciones de seguridad
 
 - Credenciales Salesforce solo en `.env` (gitignored) — sin cambio
-- `ProductionDb` (192.168.20.91) READ-ONLY — `BrandMonitorChecker` ya no accede a ProductionDb
+- `ProductionDb` (<IP_SERVIDOR_BD>) READ-ONLY — `BrandMonitorChecker` ya no accede a ProductionDb
 - `brand_snapshots` en `DefaultConnection` (App DB) — R/W via EF Core ✅

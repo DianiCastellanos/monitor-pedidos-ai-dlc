@@ -1,4 +1,4 @@
-# Plan IT5 — Salesforce Order Monitor (OCAPI + OAuth2)
+﻿# Plan IT5 — Salesforce Order Monitor (OCAPI + OAuth2)
 
 **Fecha:** 2026-05-30  
 **Estado:** ✅ Completado  
@@ -183,7 +183,7 @@ Salesforce__OAuthGrantType=client_credentials
 
 - `ClientId` y `ClientPassword` **NUNCA** en `appsettings.json` ni en código fuente
 - Credenciales solo en `.env` (gitignored) o variables de entorno
-- `ProductionDb` (192.168.20.91) es **READ-ONLY** — este módulo no accede a esa BD
+- `ProductionDb` (<IP_SERVIDOR_BD>) es **READ-ONLY** — este módulo no accede a esa BD
 - El token OAuth2 no se loguea (solo se loguea que fue renovado y su tiempo de expiración)
 
 ---

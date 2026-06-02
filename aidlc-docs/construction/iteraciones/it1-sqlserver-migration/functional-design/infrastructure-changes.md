@@ -1,4 +1,4 @@
-# IT1 — Migración PostgreSQL → SQL Server · Functional Design
+﻿# IT1 — Migración PostgreSQL → SQL Server · Functional Design
 
 **Fecha:** 2026-05-30  
 **Iteración:** IT1 — PostgreSQL → SQL Server + Dual DB  
@@ -18,7 +18,7 @@ Migrar el proveedor de base de datos de PostgreSQL (prototipo) a SQL Server (inf
 | Conexión | Servidor | Base de datos | Provider | Uso |
 |----------|----------|---------------|----------|-----|
 | `DefaultConnection` | 172.16.0.41 | MonitorPedidosDb | EF Core (SQL Server) | `incidents`, `rules`, `rule_history`, `brand_snapshots`, `simulated_orders`, `simulated_job_statuses` |
-| `ProductionDb` | 192.168.20.91 | vtainternet_qa | Dapper (solo SELECT) | `oc_encabezado` — fuente real de pedidos para M2 |
+| `ProductionDb` | <IP_SERVIDOR_BD> | <NOMBRE_BD_PRODUCCION> | Dapper (solo SELECT) | `oc_encabezado` — fuente real de pedidos para M2 |
 
 **Invariante de seguridad:** `ProductionDb` es **solo lectura** — nunca DELETE, UPDATE, ALTER, INSERT.
 
