@@ -115,55 +115,55 @@ Para garantizar selectores robustos (sin dependencia de estilos ni textos dinám
 
 | ID | Archivo | Test | Verifica |
 |---|---|---|---|
-| T1 | `01-noc-carga.spec.ts` | NOC carga sin errores y muestra todos los módulos | 4 cards visibles + Brand Monitor + sin error |
-| T2 | `02-m3-detalle-apis.spec.ts` | Salesforce y Multivende visibles con estado definido | Etiquetas + badges con data-status válido |
-| T3 | `03-m3-peor-estado.spec.ts` | data-status del card M3 = peor estado individual | Lógica: critical>warn>ok>unknown |
-| T4 | `04-brand-monitor-visible.spec.ts` | Brand Monitor persiste durante auto-refresh 15s | Tabla y 4 sites visibles antes y después |
-| T5a | `05-m4-estado-db.spec.ts` | M4 muestra latencia o N/A — nunca vacío | `<strong>` no vacío, dot con estado válido |
-| T5b | `05-m4-estado-db.spec.ts` | M4 muestra Critical cuando BD falla | dot `data-status="critical"` o latencia numérica |
+| T1 | `t1-noc-muestra-estado-sistema.spec.ts` | NOC carga sin errores y muestra todos los módulos | 4 cards visibles + Brand Monitor + sin error |
+| T2 | `t2-api-externas-muestra-detalle-salesforce-multivende.spec.ts` | Salesforce y Multivende visibles con estado definido | Etiquetas + badges con data-status válido |
+| T3 | `t3-api-externas-peor-estado-global.spec.ts` | data-status del card M3 = peor estado individual | Lógica: critical>warn>ok>unknown |
+| T4 | `t4-brand-monitor-no-destructive-refresh.spec.ts` | Brand Monitor persiste durante auto-refresh 15s | Tabla y 4 sites visibles antes y después |
+| T5a | `t5-bd-salud-muestra-latencia-o-critical.spec.ts` | M4 muestra latencia o N/A — nunca vacío | `<strong>` no vacío, dot con estado válido |
+| T5b | `t5-bd-salud-muestra-latencia-o-critical.spec.ts` | M4 muestra Critical cuando BD falla | dot `data-status="critical"` o latencia numérica |
 
 ### 5.2 Dashboard — Escenarios críticos
 
 | ID | Archivo | Test | Verifica |
 |---|---|---|---|
-| D1 | `06-dashboard-carga.spec.ts` | Dashboard carga sin errores — todos los módulos | Título + 4 cards + badge estado + header Brand Monitor |
-| D2 | `07-dashboard-brand-visible.spec.ts` | Brand Monitor visible tras carga inicial | Tabla + 4 sites (PatPrimo, SevenSeven, Atmos, Ostu) |
-| D3 | `08-dashboard-check-now.spec.ts` | Botón "Chequear ahora" funciona correctamente | Habilitado → clic → vuelve habilitado → countdown visible |
-| D4 | `09-dashboard-brand-refresh.spec.ts` | Refresh manual no destruye la tabla | Tabla visible antes, durante y después del refresh |
+| D1 | `d1-dashboard-muestra-modulos-y-estado.spec.ts` | Dashboard carga sin errores — todos los módulos | Título + 4 cards + badge estado + header Brand Monitor |
+| D2 | `d2-brand-monitor-siempre-visible-dashboard.spec.ts` | Brand Monitor visible tras carga inicial | Tabla + 4 sites (PatPrimo, SevenSeven, Atmos, Ostu) |
+| D3 | `d3-dashboard-check-now-resetea-countdown.spec.ts` | Botón "Chequear ahora" funciona correctamente | Habilitado → clic → vuelve habilitado → countdown visible |
+| D4 | `d4-brand-monitor-refresh-no-destruye-tabla.spec.ts` | Refresh manual no destruye la tabla | Tabla visible antes, durante y después del refresh |
 
 ### 5.3 Red-Team Bloque 1 — Sin cambios de entorno
 
 | ID | Archivo | Test | Verifica |
 |---|---|---|---|
-| RT-P | `rt-bloque1.spec.ts` | RT-Persist: alertas persisten tras reinicio | Incidentes cargados desde BD al arrancar |
-| RT5 | `rt-bloque1.spec.ts` | Panel discrepancias UC6 existe y carga | `/discrepancies` sin error, muestra contenido |
-| RT7 | `rt-bloque1.spec.ts` | M3 activo, filtro cancelados activo | api-status-sf con estado definido (checker corriendo) |
+| RT-P | `rt-persist-rt5-rt7-persistencia-discrepancias.spec.ts` | RT-Persist: alertas persisten tras reinicio | Incidentes cargados desde BD al arrancar |
+| RT5 | `rt-persist-rt5-rt7-persistencia-discrepancias.spec.ts` | Panel discrepancias UC6 existe y carga | `/discrepancies` sin error, muestra contenido |
+| RT7 | `rt-persist-rt5-rt7-persistencia-discrepancias.spec.ts` | M3 activo, filtro cancelados activo | api-status-sf con estado definido (checker corriendo) |
 
 ### 5.4 Red-Team Bloque 2 — Simulación de fallos vía .env
 
 | ID | Archivo | Test | Verifica | Entorno |
 |---|---|---|---|---|
-| RT3-1 | `rt3-bd-caida.spec.ts` | M4 BD Salud muestra Critical | dot `critical` ≤ 45s | IP inválida en .env |
-| RT3-2 | `rt3-bd-caida.spec.ts` | M2 BD Pedidos muestra Critical | dot `critical` ≤ 45s | IP inválida en .env |
-| RT3-3 | `rt3-bd-caida.spec.ts` | Dashboard no crashea con BD caída | Todos los cards visibles — graceful degradation | IP inválida en .env |
-| RT2-1 | `rt2-token-invalido.spec.ts` | M3 Salesforce Critical con token inválido | api-status-sf `data-status="critical"` | ClientId inválido en .env |
-| RT2-2 | `rt2-token-invalido.spec.ts` | M3 card global refleja Critical | card-m3 dot `critical` | ClientId inválido en .env |
-| RT2-3 | `rt2-token-invalido.spec.ts` | Dashboard M3 refleja falla de Salesforce | card M3 con "Salesforce" visible | ClientId inválido en .env |
-| RT2-4 | `rt2-token-invalido.spec.ts` | Detalle incidente muestra SOP-001 (BR-TOKEN-01) | AccionSugerida contiene "SOP-001" | ClientId inválido en .env |
+| RT3-1 | `rt3-bd-caida-muestra-critical-y-graceful-degradation.spec.ts` | M4 BD Salud muestra Critical | dot `critical` ≤ 45s | IP inválida en .env |
+| RT3-2 | `rt3-bd-caida-muestra-critical-y-graceful-degradation.spec.ts` | M2 BD Pedidos muestra Critical | dot `critical` ≤ 45s | IP inválida en .env |
+| RT3-3 | `rt3-bd-caida-muestra-critical-y-graceful-degradation.spec.ts` | Dashboard no crashea con BD caída | Todos los cards visibles — graceful degradation | IP inválida en .env |
+| RT2-1 | `rt2-token-salesforce-invalido-muestra-critical-y-sop001.spec.ts` | M3 Salesforce Critical con token inválido | api-status-sf `data-status="critical"` | ClientId inválido en .env |
+| RT2-2 | `rt2-token-salesforce-invalido-muestra-critical-y-sop001.spec.ts` | M3 card global refleja Critical | card-m3 dot `critical` | ClientId inválido en .env |
+| RT2-3 | `rt2-token-salesforce-invalido-muestra-critical-y-sop001.spec.ts` | Dashboard M3 refleja falla de Salesforce | card M3 con "Salesforce" visible | ClientId inválido en .env |
+| RT2-4 | `rt2-token-salesforce-invalido-muestra-critical-y-sop001.spec.ts` | Detalle incidente muestra SOP-001 (BR-TOKEN-01) | AccionSugerida contiene "SOP-001" | ClientId inválido en .env |
 
 ### 5.5 Red-Team Bloque 3 — Acción en servidor SR-SDEV02CO
 
 | ID | Archivo | Test | Verifica | Entorno |
 |---|---|---|---|---|
-| RT1-1 | `rt1-job-deshabilitado.spec.ts` | M11 Jobs muestra Critical | dot `critical` ≤ 45s | OC_PATPRIMO Disabled |
-| RT1-2 | `rt1-job-deshabilitado.spec.ts` | M11 card muestra "Disabled" | Texto "Disabled" visible | OC_PATPRIMO Disabled |
-| RT1-3 | `rt1-job-deshabilitado.spec.ts` | Incidente M11 creado con causa Job | Fila "M11" en /incidents | OC_PATPRIMO Disabled |
+| RT1-1 | `rt1-job-deshabilitado-muestra-critical-e-incidente.spec.ts` | M11 Jobs muestra Critical | dot `critical` ≤ 45s | OC_PATPRIMO Disabled |
+| RT1-2 | `rt1-job-deshabilitado-muestra-critical-e-incidente.spec.ts` | M11 card muestra "Disabled" | Texto "Disabled" visible | OC_PATPRIMO Disabled |
+| RT1-3 | `rt1-job-deshabilitado-muestra-critical-e-incidente.spec.ts` | Incidente M11 creado con causa Job | Fila "M11" en /incidents | OC_PATPRIMO Disabled |
 
 ### 5.6 Error E3 — LogsPage
 
 | ID | Archivo | Test | Verifica |
 |---|---|---|---|
-| E3 | `e3-logs-tecnico.spec.ts` | /logs carga sin error para rol Técnico | Título "Logs Técnicos" + botón Actualizar visible |
+| E3 | `e3-logs-tecnico-carga-sin-error.spec.ts` | /logs carga sin error para rol Técnico | Título "Logs Técnicos" + botón Actualizar visible |
 
 ---
 

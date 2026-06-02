@@ -85,7 +85,7 @@ Para garantizar selectores robustos (sin dependencia de estilos o textos dinámi
 ## 6. Casos de prueba
 
 ### T1 — NOC carga correctamente
-**Archivo**: `tests/01-noc-carga.spec.ts`  
+**Archivo**: `tests/t1-noc-muestra-estado-sistema.spec.ts`  
 **Regla validada**: La vista NOC carga completamente sin errores
 
 | Paso | Acción | Verificación |
@@ -102,7 +102,7 @@ Para garantizar selectores robustos (sin dependencia de estilos o textos dinámi
 ---
 
 ### T2 — M3 muestra detalle por API
-**Archivo**: `tests/02-m3-detalle-apis.spec.ts`  
+**Archivo**: `tests/t2-api-externas-muestra-detalle-salesforce-multivende.spec.ts`  
 **Regla validada**: M3 siempre muestra estado individual de cada integración (no solo el estado global)
 
 | Paso | Acción | Verificación |
@@ -121,7 +121,7 @@ Para garantizar selectores robustos (sin dependencia de estilos o textos dinámi
 ---
 
 ### T3 — M3 estado global = peor estado de sus APIs
-**Archivo**: `tests/03-m3-peor-estado.spec.ts`  
+**Archivo**: `tests/t3-api-externas-peor-estado-global.spec.ts`  
 **Regla validada**: El estado del card M3 refleja el peor estado entre Salesforce y Multivende (BR-M3-01)
 
 Escala de severidad: `critical (3) > warn (2) > ok (1) > unknown (0)`
@@ -140,7 +140,7 @@ Escala de severidad: `critical (3) > warn (2) > ok (1) > unknown (0)`
 ---
 
 ### T4 — Brand Monitor siempre visible (non-destructive refresh)
-**Archivo**: `tests/04-brand-monitor-visible.spec.ts`  
+**Archivo**: `tests/t4-brand-monitor-no-destructive-refresh.spec.ts`  
 **Regla validada**: La tabla Brand Monitor nunca desaparece durante el auto-refresh de 15s (NOC)
 
 | Paso | Acción | Verificación |
@@ -157,7 +157,7 @@ Escala de severidad: `critical (3) > warn (2) > ok (1) > unknown (0)`
 ---
 
 ### T5 — M4 siempre muestra estado de BD
-**Archivo**: `tests/05-m4-estado-db.spec.ts`  
+**Archivo**: `tests/t5-bd-salud-muestra-latencia-o-critical.spec.ts`  
 **Regla validada**: M4 nunca queda vacío — siempre muestra latencia o N/A
 
 **T5a — Estado normal**:
@@ -216,7 +216,7 @@ Running 10 tests using 9 workers
 
 ## 9. Red-Team Bloque 1 — Validación RT-Persist · RT5 · RT7
 
-**Archivo**: `tests/e2e/tests/rt-bloque1.spec.ts`
+**Archivo**: `tests/e2e/tests/rt-persist-rt5-rt7-persistencia-discrepancias.spec.ts`
 
 ```
 Running 3 tests using 1 worker
@@ -228,7 +228,7 @@ Running 3 tests using 1 worker
   3 passed (17.2s)
 ```
 
-Ver detalles completos en: `rt-bloque1-validacion.md`
+Ver detalles completos en: `rt-persist-rt5-rt7-persistencia-discrepancias.md`
 
 ---
 
@@ -238,7 +238,7 @@ Ver detalles completos en: `rt-bloque1-validacion.md`
 |---|---|---|
 | E1 — data-testid faltante en rama else Brand Monitor | errores-playwright-dashboard.md | ✅ Corregido |
 | E2 — estado disabled transitorio no detectable | errores-playwright-dashboard.md | ✅ Test rediseñado |
-| E3 — LogsPage falla para rol Técnico | rt-bloque1-validacion.md | ⚠️ Pendiente investigación |
+| E3 — LogsPage falla para rol Técnico | rt-persist-rt5-rt7-persistencia-discrepancias.md | ⚠️ Pendiente investigación |
 
 ---
 

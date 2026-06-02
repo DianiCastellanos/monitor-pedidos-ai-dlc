@@ -104,7 +104,7 @@ El `UpdateAlert` del IncidentService actualiza el incidente existente (sin crear
 
 ### E5 — Ruta de historial de incidentes era incorrecta en el test
 
-**Archivo**: `tests/e2e/tests/rt2-token-invalido.spec.ts`  
+**Archivo**: `tests/e2e/tests/rt2-token-salesforce-invalido-muestra-critical-y-sop001.spec.ts`  
 **Síntoma**: Row "M13 — Salesforce API" nunca encontrado — timeout 90s  
 
 **Causa raíz**: El test usaba `/incidents/history` pero la ruta real del `HistoricPage.razor`

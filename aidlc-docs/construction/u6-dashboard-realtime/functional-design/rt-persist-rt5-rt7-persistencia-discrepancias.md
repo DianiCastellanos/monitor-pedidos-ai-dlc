@@ -3,7 +3,7 @@
 
 **Fecha**: 2026-06-01  
 **Estado**: ✅ 3/3 PASSING  
-**Archivo de test**: `tests/e2e/tests/rt-bloque1.spec.ts`
+**Archivo de test**: `tests/e2e/tests/rt-persist-rt5-rt7-persistencia-discrepancias.spec.ts`
 
 ---
 

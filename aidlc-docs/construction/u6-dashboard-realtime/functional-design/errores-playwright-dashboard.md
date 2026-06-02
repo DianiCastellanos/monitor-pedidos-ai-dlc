@@ -30,7 +30,7 @@ Agregar `data-testid="brand-monitor-table"` manualmente a la rama `else`:
 
 ## E2 — Estado `disabled` del botón "Chequear ahora" no detectable por Playwright
 
-**Archivo**: `tests/e2e/tests/08-dashboard-check-now.spec.ts`  
+**Archivo**: `tests/e2e/tests/d3-dashboard-check-now-resetea-countdown.spec.ts`  
 **Test afectado**: D3  
 **Detectado**: Ejecución tras corrección de E1  
 
