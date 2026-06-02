@@ -1,11 +1,44 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 
 <div class="noc-layout bg-dark text-light" style="min-height:100vh">
     <div class="container-fluid p-3">
+
         <div class="d-flex justify-content-between align-items-center mb-3 border-bottom border-secondary pb-2">
-            <h5 class="mb-0 fw-bold" style="font-size:1.25rem">&#x1F5A5; Modo NOC — MonitorPedidos</h5>
-            <a href="/dashboard" class="btn btn-outline-light btn-sm">Salir de NOC</a>
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="mb-0 fw-bold" style="font-size:1.25rem">
+                    &#x1F5A5; Modo NOC — MonitorPedidos
+                </h5>
+                <span class="badge bg-success" style="font-size:0.7rem; letter-spacing:0.05em;">
+                    &#9679; EN VIVO
+                </span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <span style="color:#9ca3af; font-size:0.85rem; font-family:monospace;">
+                    @_now.ToString("dd/MM/yyyy HH:mm:ss")
+                </span>
+                <a href="/dashboard" class="btn btn-outline-light btn-sm">Salir de NOC</a>
+            </div>
         </div>
+
         @Body
     </div>
 </div>
+
+@code {
+    private DateTime _now = DateTime.Now;
+    private Timer?   _clock;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _clock = new Timer(_ =>
+        {
+            _now = DateTime.Now;
+            InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
+
+    public void Dispose() => _clock?.Dispose();
+}

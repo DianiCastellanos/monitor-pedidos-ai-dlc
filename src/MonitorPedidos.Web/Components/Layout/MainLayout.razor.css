@@ -4,6 +4,13 @@
     flex-direction: column;
 }
 
+/* Enlace activo en la barra de navegación */
+.nav-link-active {
+    color: #0d6efd !important;
+    font-weight: 600;
+    border-bottom: 2px solid #0d6efd;
+}
+
 main {
     flex: 1;
 }
