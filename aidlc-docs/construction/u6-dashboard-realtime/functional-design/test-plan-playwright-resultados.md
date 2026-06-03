@@ -1,26 +1,27 @@
 # Test Plan Playwright — MonitorPedidos AI
 ## Plan Completo + Resultados de Ejecución
 
-**Versión**: 1.0  
-**Fecha**: 2026-06-01  
+**Versión**: 1.1  
+**Fecha**: 2026-06-02  
 **Proyecto**: MonitorPedidos AI — Manufacuras Eliot  
 **Owner**: Diana Castellanos  
 **Fase AI-DLC**: VALIDATE  
-**Estado final**: ✅ **24/24 tests passing**
+**Estado final**: ✅ **27/27 tests passing (15 spec files)**
 
 ---
 
 ## 1. Resumen ejecutivo
 
 | Categoría | Tests | Resultado | Tiempo total |
-|---|---|---|---|
+|---|---|---|---|---|
 | Funcionales NOC | 6 | ✅ 6/6 | 34s |
 | Funcionales Dashboard | 4 | ✅ 4/4 | 6s |
+| IT6 — Navegación UI | 3 | ✅ 3/3 | 8s |
 | Red-Team Bloque 1 | 3 | ✅ 3/3 | 17s |
 | Red-Team Bloque 2 | 7 | ✅ 7/7 | ~2 min |
 | Red-Team Bloque 3 | 3 | ✅ 3/3 | 48s |
 | Error E3 — LogsPage | 1 | ✅ 1/1 | 2s |
-| **TOTAL** | **24** | **✅ 24/24** | **~4 min** |
+| **TOTAL** | **27** | **✅ 27/27** | **~5 min** |
 
 **Errores encontrados y corregidos durante ejecución**: 5  
 **Fixes de código generados**: 3
@@ -159,7 +160,15 @@ Para garantizar selectores robustos (sin dependencia de estilos ni textos dinám
 | RT1-2 | `rt1-job-deshabilitado-muestra-critical-e-incidente.spec.ts` | M11 card muestra "Disabled" | Texto "Disabled" visible | OC_PATPRIMO Disabled |
 | RT1-3 | `rt1-job-deshabilitado-muestra-critical-e-incidente.spec.ts` | Incidente M11 creado con causa Job | Fila "M11" en /incidents | OC_PATPRIMO Disabled |
 
-### 5.6 Error E3 — LogsPage
+### 5.6 IT6 — Navegación UI (NavLink activo, reloj en vivo, layout NOC)
+
+| ID | Archivo | Test | Verifica |
+|---|---|---|---|
+| IT6-1 | `it6-navegacion.spec.ts` | Navbar muestra Discrepancias y Modo NOC | Links visibles en navbar |
+| IT6-2 | `it6-navegacion.spec.ts` | Link activo se resalta en página actual | Clase `nav-link-active` en link correcto |
+| IT6-3 | `it6-navegacion.spec.ts` | NocLayout muestra reloj en vivo y badge EN VIVO | Badge + reloj formato fecha/hora + botón Salir |
+
+### 5.7 Error E3 — LogsPage
 
 | ID | Archivo | Test | Verifica |
 |---|---|---|---|
@@ -240,6 +249,18 @@ Running 3 tests using 1 worker
 ```
 **Nota**: OC_PATPRIMO re-habilitado después del test.
 
+### IT6 — Navegación UI (3/3)
+
+```
+Running 3 tests using 1 worker
+
+  ok IT6-1  Navbar muestra Discrepancias y Modo NOC             1.5s
+  ok IT6-2  Link activo se resalta en ruta actual               2.1s
+  ok IT6-3  NocLayout muestra reloj en vivo y badge             3.8s
+
+  3 passed (8.1s)
+```
+
 ### Error E3 — LogsPage (1/1)
 
 ```
@@ -296,7 +317,22 @@ Running 1 test using 1 worker
 
 ---
 
-## 8. Fixes de código generados por los tests
+## 8. Red-Teaming — Tabla completa (PRD Segmento 11)
+
+| RT | Escenario | Método | Tiempo detección | Tests asociados | Estado |
+|----|-----------|--------|-----------------|-----------------|--------|
+| RT-Persist | Alertas persisten tras reinicio de app | Navegar a `/incidents` post-reinicio | Inmediato | RT-P (`rt-persist-rt5-rt7.spec.ts`) | ✅ |
+| RT1 | Job OC_PATPRIMO deshabilitado → M11 Critical | Deshabilitar job en SR-SDEV02CO | ≤ 45s (CheckerInterval 30s + tolerance) | RT1-1, RT1-2, RT1-3 (`rt1-job-deshabilitado.spec.ts`) | ✅ |
+| RT2 | Token Salesforce inválido → Critical + SOP-001 | Cambiar `Salesforce:ClientId` en `.env` | ≤ 30s (próximo ciclo checker) | RT2-1, RT2-2, RT2-3, RT2-4 (`rt2-token-salesforce-invalido.spec.ts`) | ✅ |
+| RT3 | SQL Server inaccesible → Critical + graceful degradation | Cambiar IP de BD en `.env` | M4: 39s, M2: 23s (ConnectTimeout 5s + ciclo) | RT3-1, RT3-2, RT3-3 (`rt3-bd-caida.spec.ts`) | ✅ |
+| RT5 | Panel discrepancias UC6 existe y carga | Navegar a `/discrepancies` | Inmediato | RT5 (`rt-persist-rt5-rt7.spec.ts`) | ✅ |
+| RT7 | M3 activo, filtro cancelados activo | Verificar api-status-sf con estado definido | Inmediato | RT7 (`rt-persist-rt5-rt7.spec.ts`) | ✅ |
+
+**Total**: 6/6 escenarios validados ✅
+
+---
+
+## 9. Fixes de código generados por los tests
 
 | Fix | Archivo | Descripción |
 |---|---|---|
@@ -306,11 +342,13 @@ Running 1 test using 1 worker
 
 ---
 
-## 9. Traceabilidad — Tests vs Requisitos PRD
+## 10. Traceabilidad — Tests vs Requisitos PRD
 
 | Requisito PRD | Test(s) que lo validan |
 |---|---|
 | Dashboard carga sin errores (M8) | D1 |
+| Navegación con link activo resaltado (IT6) | IT6-1, IT6-2 |
+| Vista NOC con reloj en vivo (IT6) | IT6-3 |
 | Brand Monitor tabla siempre visible | T4, D2, D4 |
 | M3 muestra estado por integración | T2 |
 | M3 estado global = peor estado | T3 |
@@ -326,7 +364,7 @@ Running 1 test using 1 worker
 
 ---
 
-## 10. Cobertura de reglas críticas del sistema
+## 11. Cobertura de reglas críticas del sistema
 
 | Regla | Test | Estado |
 |---|---|---|

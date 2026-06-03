@@ -1,0 +1,134 @@
+planningWave: monitorpedidos-ai-completo
+publishedAt: "2026-06-03T03:01:00Z"
+project: MonitorPedidos AI
+projectUrl: https://linear.app/dianicastellanos/project/monitorpedidos-ai-dc93da53b11f
+team: DIA
+workspace: dianicastellanos
+
+milestones:
+  - name: "MS1: Inception Complete"
+    id: 348990ce-f314-4833-9394-1b5e84cbcc06
+    targetDate: "2026-05-22"
+  - name: "MS2: MVP Core (U1-U7)"
+    id: f4a7ddbf-f0d0-49ec-a5c1-f41de120047a
+    targetDate: "2026-05-28"
+  - name: "MS3: SQL Server & Configurabilidad"
+    id: c94bcba7-6994-4ee6-b188-cb826cc78e05
+    targetDate: "2026-05-30"
+  - name: "MS4: Brand Monitor & Dashboard"
+    id: b2084dc9-a989-4162-a60e-5087fa3d83d5
+    targetDate: "2026-05-29"
+  - name: "MS5: Salesforce Integration"
+    id: 933d3c0a-8114-45df-a9bb-b9078c798154
+    targetDate: "2026-05-31"
+  - name: "MS6: Stability & Degradation"
+    id: 86dc22f3-5209-4ae8-879a-b16724fb9cab
+    targetDate: "2026-05-31"
+  - name: "MS7: Validate & Red-Team"
+    id: 1674a29e-3e5a-475f-ad3b-f866accdcf11
+    targetDate: "2026-06-01"
+  - name: "MS8: Operations Ready"
+    id: ca3f62dc-f539-491a-ae4e-f6b243555b49
+    targetDate: "2026-06-15"
+
+issues:
+  - task: "001"
+    identifier: DIA-55
+    url: https://linear.app/dianicastellanos/issue/DIA-55
+    status: Done
+  - task: "002"
+    identifier: DIA-56
+    url: https://linear.app/dianicastellanos/issue/DIA-56
+    status: Done
+  - task: "003"
+    identifier: DIA-57
+    url: https://linear.app/dianicastellanos/issue/DIA-57
+    status: Done
+  - task: "004"
+    identifier: DIA-58
+    url: https://linear.app/dianicastellanos/issue/DIA-58
+    status: Done
+  - task: "005"
+    identifier: DIA-59
+    url: https://linear.app/dianicastellanos/issue/DIA-59
+    status: Done
+  - task: "006"
+    identifier: DIA-60
+    url: https://linear.app/dianicastellanos/issue/DIA-60
+    status: Done
+  - task: "007"
+    identifier: DIA-61
+    url: https://linear.app/dianicastellanos/issue/DIA-61
+    status: Done
+  - task: "008"
+    identifier: DIA-62
+    url: https://linear.app/dianicastellanos/issue/DIA-62
+    status: Done
+  - task: "009"
+    identifier: DIA-63
+    url: https://linear.app/dianicastellanos/issue/DIA-63
+    status: Done
+  - task: "010"
+    identifier: DIA-64
+    url: https://linear.app/dianicastellanos/issue/DIA-64
+    status: Done
+  - task: "011"
+    identifier: DIA-65
+    url: https://linear.app/dianicastellanos/issue/DIA-65
+    status: Done
+  - task: "012"
+    identifier: DIA-66
+    url: https://linear.app/dianicastellanos/issue/DIA-66
+    status: Done
+  - task: "013"
+    identifier: DIA-67
+    url: https://linear.app/dianicastellanos/issue/DIA-67
+    status: Done
+  - task: "014"
+    identifier: DIA-68
+    url: https://linear.app/dianicastellanos/issue/DIA-68
+    status: Done
+  - task: "015"
+    identifier: DIA-69
+    url: https://linear.app/dianicastellanos/issue/DIA-69
+    status: Done
+  - task: "016"
+    identifier: DIA-70
+    url: https://linear.app/dianicastellanos/issue/DIA-70
+    status: Done
+  - task: "017"
+    identifier: DIA-71
+    url: https://linear.app/dianicastellanos/issue/DIA-71
+    status: Done
+  - task: "018"
+    identifier: DIA-72
+    url: https://linear.app/dianicastellanos/issue/DIA-72
+    status: Done
+  - task: "019"
+    identifier: DIA-73
+    url: https://linear.app/dianicastellanos/issue/DIA-73
+    status: Done
+  - task: "020"
+    identifier: DIA-74
+    url: https://linear.app/dianicastellanos/issue/DIA-74
+    status: Done
+  - task: "021"
+    identifier: DIA-75
+    url: https://linear.app/dianicastellanos/issue/DIA-75
+    status: Done
+  - task: "022"
+    identifier: DIA-76
+    url: https://linear.app/dianicastellanos/issue/DIA-76
+    status: Done
+  - task: "023"
+    identifier: DIA-77
+    url: https://linear.app/dianicastellanos/issue/DIA-77
+    status: Done
+  - task: "024"
+    identifier: DIA-78
+    url: https://linear.app/dianicastellanos/issue/DIA-78
+    status: In Progress
+  - task: "025"
+    identifier: DIA-79
+    url: https://linear.app/dianicastellanos/issue/DIA-79
+    status: Todo

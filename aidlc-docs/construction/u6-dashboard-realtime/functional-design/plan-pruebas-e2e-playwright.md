@@ -1,9 +1,9 @@
 # Plan de Pruebas E2E — Playwright
 ## MonitorPedidos NOC — Fase VALIDATE
 
-**Versión**: 1.2  
-**Fecha**: 2026-06-01  
-**Estado**: EJECUTADO — 16/16 passing (10 funcionales + 3 Dashboard + 3 RT Bloque 1)  
+**Versión**: 1.3  
+**Fecha**: 2026-06-02  
+**Estado**: EJECUTADO — 27/27 passing (15 spec files)  
 **Proyecto tests**: `tests/e2e/`  
 **URL base**: `http://localhost:5000`
 
@@ -181,15 +181,47 @@ Escala de severidad: `critical (3) > warn (2) > ok (1) > unknown (0)`
 
 ---
 
+### IT6 — Navegación UI
+
+**Archivo**: `tests/e2e/tests/it6-navegacion.spec.ts`
+
+**IT6-1 — Navbar muestra Discrepancias y Modo NOC como botón**:
+| Paso | Acción | Verificación |
+|------|--------|-------------|
+| 1 | Login + /dashboard | — |
+| 2 | — | Link "Discrepancias" visible en navbar |
+| 3 | — | Link "Modo NOC" visible como botón |
+
+**IT6-2 — Link activo se resalta en página actual**:
+| Paso | Acción | Verificación |
+|------|--------|-------------|
+| 1 | Login + /incidents | — |
+| 2 | — | Link "Historial" tiene clase `nav-link-active` |
+| 3 | — | Link "Dashboard" NO tiene clase activa |
+
+**IT6-3 — NocLayout muestra reloj en vivo y badge EN VIVO**:
+| Paso | Acción | Verificación |
+|------|--------|-------------|
+| 1 | Login + /noc | — |
+| 2 | — | Badge "EN VIVO" visible |
+| 3 | — | Reloj formato `dd/mm/aaaa hh:mm:ss` visible |
+| 4 | — | Botón "Salir de NOC" visible |
+
+**Resultado**: ✅ 3/3 PASSING
+
+---
+
 ## 7. Cobertura de reglas críticas
 
 | Regla | Test | Estado |
-|---|---|---|
+|---|---|---|---|
 | NOC carga sin errores | T1 | ✅ |
 | M3 muestra detalle por integración | T2 | ✅ |
 | M3 estado global = peor componente | T3 | ✅ |
 | Brand Monitor nunca desaparece (refresco no destructivo) | T4 | ✅ |
 | M4 siempre muestra estado (nunca vacío) | T5 | ✅ |
+| Navegación con link activo | IT6-1, IT6-2 | ✅ |
+| Reloj en vivo en NOC | IT6-3 | ✅ |
 
 ---
 

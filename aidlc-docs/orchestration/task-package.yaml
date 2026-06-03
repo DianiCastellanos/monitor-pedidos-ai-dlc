@@ -1,0 +1,172 @@
+planningWave: "monitorpedidos-ai-completo"
+tasksDir: "aidlc-docs/orchestration/tasks"
+milestones:
+  - ms01-inception
+  - ms02-mvp-core
+  - ms03-sqlserver-config
+  - ms04-brand-dashboard
+  - ms05-salesforce
+  - ms06-stability-degradation
+  - ms07-validate-rt
+  - ms08-operations-ready
+tasks:
+  - id: "001"
+    title: "Inception — Requirements, Stories, Design, Units"
+    milestone: ms01-inception
+    priority: highest
+    estimate: "3d"
+    status: done
+  - id: "002"
+    title: "U1 — Foundation & Cross-Cutting (Auth, Security, Logging)"
+    milestone: ms02-mvp-core
+    priority: highest
+    estimate: "2d"
+    status: done
+  - id: "003"
+    title: "U2 — Persistence & Incidents (DB, Entities, Repositories)"
+    milestone: ms02-mvp-core
+    priority: highest
+    estimate: "1d"
+    blockedBy: ["002"]
+    status: done
+  - id: "004"
+    title: "U3 — Detection & Classification (Checkers, Scheduler)"
+    milestone: ms02-mvp-core
+    priority: highest
+    estimate: "1d"
+    blockedBy: ["003"]
+    status: done
+  - id: "005"
+    title: "U4 — External Integrations (Salesforce, Multivende Clients)"
+    milestone: ms02-mvp-core
+    priority: highest
+    estimate: "1d"
+    blockedBy: ["003"]
+    status: done
+  - id: "006"
+    title: "U5 — Rules Management (CRUD, History, Conditions)"
+    milestone: ms02-mvp-core
+    priority: high
+    estimate: "1d"
+    blockedBy: ["003"]
+    status: done
+  - id: "007"
+    title: "U6 — Dashboard & Real-Time (Blazor UI, NOC, Brand Monitor)"
+    milestone: ms02-mvp-core
+    priority: highest
+    estimate: "2d"
+    blockedBy: ["004", "005", "006"]
+    status: done
+  - id: "008"
+    title: "U7 — Simulation & Red-Teaming (Simulator, RT Framework)"
+    milestone: ms02-mvp-core
+    priority: high
+    estimate: "1d"
+    blockedBy: ["007"]
+    status: done
+  - id: "009"
+    title: "Build & Test MVP — 50 tests, build 0 errores"
+    milestone: ms02-mvp-core
+    priority: highest
+    estimate: "1d"
+    blockedBy: ["008"]
+    status: done
+  - id: "010"
+    title: "IT1 — PostgreSQL → SQL Server + Dual DB"
+    milestone: ms03-sqlserver-config
+    priority: high
+    estimate: "1d"
+    status: done
+  - id: "011"
+    title: "IT2 — M2 Configurable por Reglas (Channels, MinOrders)"
+    milestone: ms03-sqlserver-config
+    priority: high
+    estimate: "1d"
+    status: done
+  - id: "012"
+    title: "IT3 — Brand Monitor Redesign + retención 48h snapshots"
+    milestone: ms04-brand-dashboard
+    priority: high
+    estimate: "1d"
+    status: done
+  - id: "013"
+    title: "IT4 — Dashboard Improvements (Timers, Labels, RenderMode)"
+    milestone: ms04-brand-dashboard
+    priority: medium
+    estimate: "1d"
+    status: done
+  - id: "014"
+    title: "IT5 — Salesforce Order Monitor (OCAPI, Multi-site, OAuth2)"
+    milestone: ms05-salesforce
+    priority: high
+    estimate: "1d"
+    status: done
+  - id: "015"
+    title: "IT6 — UI Navigation & NOC Mode (NavLink activo, reloj EN VIVO)"
+    milestone: ms05-salesforce
+    priority: medium
+    estimate: "0.5d"
+    status: done
+  - id: "016"
+    title: "IT7 — Salesforce → Brand Monitor Integration"
+    milestone: ms05-salesforce
+    priority: high
+    estimate: "1d"
+    blockedBy: ["014"]
+    status: done
+  - id: "017"
+    title: "IT8 — NOC Page Improvements (Status, Tendencias, Timing)"
+    milestone: ms06-stability-degradation
+    priority: medium
+    estimate: "0.5d"
+    status: done
+  - id: "018"
+    title: "IT9 — Graceful Degradation (Exception Boundaries, Fallbacks)"
+    milestone: ms06-stability-degradation
+    priority: high
+    estimate: "1d"
+    status: done
+  - id: "019"
+    title: "IT10 — Brand Monitor Live Fallback + M2 UX"
+    milestone: ms06-stability-degradation
+    priority: medium
+    estimate: "0.5d"
+    status: done
+  - id: "020"
+    title: "IT11 — Dashboard Stability & M3 Per-API Detail"
+    milestone: ms06-stability-degradation
+    priority: medium
+    estimate: "0.5d"
+    status: done
+  - id: "021"
+    title: "IT-VALIDATE — Playwright E2E Tests (15 spec files, 27 tests)"
+    milestone: ms07-validate-rt
+    priority: high
+    estimate: "1d"
+    blockedBy: ["009", "020"]
+    status: done
+  - id: "022"
+    title: "Red-Teaming — 6/6 escenarios RT PRD Segmento 11 validados"
+    milestone: ms07-validate-rt
+    priority: high
+    estimate: "1d"
+    blockedBy: ["021"]
+    status: done
+  - id: "023"
+    title: "IT-FIX-JUNE — 6 fixes post-VALIDATE (SOP-001, startup, logs, M11)"
+    milestone: ms07-validate-rt
+    priority: medium
+    estimate: "0.5d"
+    status: done
+  - id: "024"
+    title: "Documentación final y orquestación (harness, milestones, tasks)"
+    milestone: ms08-operations-ready
+    priority: low
+    estimate: "0.5d"
+    status: done
+  - id: "025"
+    title: "Deploy on-prem (pendiente decisión de negocio)"
+    milestone: ms08-operations-ready
+    priority: low
+    estimate: "?d"
+    status: pending

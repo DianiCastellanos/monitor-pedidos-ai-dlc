@@ -37,9 +37,9 @@
 
 ## Current Status
 - **Lifecycle Phase**: 🟡 **OPERATIONS** — activa desde 2026-06-01
-- **Current Stage**: VALIDATE completado ✅ — pruebas E2E Playwright + 6 escenarios RT del PRD
-- **Next Stage**: Deploy / mantenimiento continuo
-- **Status**: ✅ 24/24 tests Playwright passing. 6/6 RT del PRD Segmento 11 validados. Todos los Must Have del PRD implementados y verificados. 6 fixes de código aplicados post-MVP.
+- **Current Stage**: VALIDATE completado ✅ + Orchestración documentada ✅
+- **Next Stage**: Publicar tareas en Linear / Deploy on-prem
+- **Status**: ✅ 24/24 tests Playwright passing. 6/6 RT del PRD Segmento 11 validados. 5 reglas en DB (BrandMonitor, DbOrderChecker, SalesforceApi, DbHealthChecker, JobsMonitor). 11 iteraciones post-MVP completadas (IT1-IT11). 6 fixes de código aplicados post-VALIDATE. Orquestación documentada en aidlc-docs/orchestration/ (25 tasks, 8 milestones). Todos los Must Have del PRD implementados y verificados.
 
 ## Stage Progress
 
@@ -103,6 +103,12 @@
   - Labels humanas Módulo/Causa en HistoricPage, IncidentDetailPage, WeeklySummaryPage
   - `@rendermode InteractiveServer` en páginas de reglas e histórico
   - Artefactos: `construction/iteraciones/it4-dashboard-improvements/` · Plan: `plans/it4-dashboard-improvements-plan.md`
+
+- [x] **IT6 — UI Navigation & NOC Mode** — 2026-05-31
+  - Implementación de vista NOC (pantalla completa TV-friendly)
+  - `NocPage.razor` con 4 cards ordenadas por prioridad (M3 → M11 → M2 → M4)
+  - `NocCard.razor`, `BrandMonitorTable.razor` — texto grande, alto contraste
+  - `Components/Pages/Noc/` como feature completa
 
 - [x] **IT5 — Salesforce Order Monitor** — 2026-05-30
   - `ISalesforceClient`: `PingOrdersAsync` → `SearchPendingOrdersAsync` (POST OCAPI order_search)
@@ -184,6 +190,18 @@
 - [x] **JobStatusSnapshot.cs** — nuevo campo `FailureReason` (nullable) para diagnóstico
 - [x] **SchtasksJobStatusSource.cs** — distingue timeout de red vs job deshabilitado en FailureReason
 - [x] **NocPage.razor** — muestra `FailureReason` en card M11 en lugar de "Disabled" hardcoded
+
+### ORCHESTRATION — Documentación de Estación 6/7
+- [x] **Orchestration docs creados** — `aidlc-docs/orchestration/` (2026-06-02)
+- [x] `task-package.yaml` — 25 tareas, 8 milestones (MS1-MS8)
+- [x] `milestones.md` — MS1 a MS8 con descripciones
+- [x] `tasks/` — 25 archivos de tarea individuales (001-025)
+- [x] `harness-ficha.md` — OpenCode como harness
+- [x] `orchestration-map.md` — diagrama Mermaid de dependencias
+- [x] `build-and-test-summary.md` — incluye Playwright (14 specs, 24 tests)
+- [x] `aidlc-state.md` actualizado — refleja 24 tests, 5 reglas, 11 ITs
+- [ ] Publicar tasks en Linear via Linear MCP
+- [ ] Llenar `aidlc-docs/operations/` con runbook
 
 ### OPERATIONS Phase
 - [ ] Deploy on-prem (pendiente decisión de negocio)
