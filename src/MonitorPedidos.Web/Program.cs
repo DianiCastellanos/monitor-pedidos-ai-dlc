@@ -98,6 +98,7 @@ builder.Services.AddScoped<ITechnicalLogReader, TechnicalLogReader>();
 builder.Services.AddScoped<IIncidentRepository, IncidentRepository>();
 builder.Services.AddScoped<IIncidentService, IncidentService>();
 builder.Services.AddHostedService<IncidentMaintenanceService>();
+builder.Services.AddHostedService<OrderSyncService>();     // Sync oc_encabezado vtainternet_qa → MonitorPedidosDb
 // ─────────────────────────────────────────────────────────────────────────
 
 // ── U3: Detection & Classification ───────────────────────────────────────
