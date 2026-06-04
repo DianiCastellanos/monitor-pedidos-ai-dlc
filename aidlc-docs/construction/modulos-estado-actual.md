@@ -2,8 +2,8 @@
 
 **Proyecto:** MonitorPedidos AI
 **Empresa:** Manufacturas Eliot (Pat Primo)
-**Fecha:** 2026-06-01
-**Versión:** 1.2 (2026-06-01 — M11 diagnóstico mejorado: distingue timeout de red vs job deshabilitado; checkers arrancan inmediatamente al iniciar la app)
+**Fecha:** 2026-06-04
+**Versión:** 1.3 (2026-06-04 — Brand Monitor: UI rediseñada, sincronización reactiva con LastCheckStore, tabla oc_encabezado en MonitorPedidosDb, Simulation desactivada, timezone fix)
 
 ---
 
@@ -258,11 +258,13 @@ Windows Task Scheduler en `SR-SDEV02CO.patprimo.local` — consultado vía `scht
 
 ---
 
-## Brand Monitor — Pedidos Pendientes por Descargar
+## Brand Monitor — Pedidos por descargar
+
+> **Nombre en UI**: "Pedidos por descargar" (antes: Brand Monitor)
 
 ### Propósito
 
-Mostrar en tiempo real cuántos pedidos tienen status `ready` para exportar en Salesforce Commerce Cloud (pedidos pagados, listos para descarga al ERP, no cancelados). Este conteo refleja la "cola de trabajo" pendiente por marca.
+Mostrar cuántos pedidos tienen status `ready` para exportar en Salesforce Commerce Cloud (pedidos pagados, listos para descarga al ERP, no cancelados). Refleja la "cola de trabajo" pendiente por marca y si está creciendo o reduciéndose.
 
 ### Fuente de datos
 
@@ -333,9 +335,10 @@ BrandMonitorChecker (cada 3 min prod / 1 min dev)
 
 ### Separación de responsabilidades
 
-- `BrandMonitorChecker` (checker): única responsabilidad — consultar Salesforce y persistir
-- Dashboard / NOC (UI): solo lee datos — nunca consulta Salesforce directamente en ciclo automático
-- Botón "↻ Actualizar": única excepción — permite al usuario forzar una consulta Salesforce cuando la BD no está disponible
+- `BrandMonitorChecker` (checker): única responsabilidad — consultar Salesforce y persistir en `brand_snapshots`
+- `LastCheckStore[BrandMonitor]`: señal reactiva — cuando el checker guarda, el Dashboard actualiza inmediatamente
+- Dashboard: escucha `LastCheckStore[BrandMonitor].CheckedAt` — refresca desde BD sin polling propio
+- Botón "↻ Consultar Salesforce": permite consulta manual inmediata — resetea el countdown de 3 min
 
 ### Dependencias
 
@@ -345,25 +348,30 @@ BrandMonitorChecker (cada 3 min prod / 1 min dev)
 
 ### UX
 
-**Dashboard:**
-- Tabla con 4 filas (una por marca) + columnas: Marca / Pendientes / Tendencia / Hace X min
-- Header: "Actualizado · [timestamp] · Próx. verificación · Checker Salesforce: cada 3 min"
-- Timer countdown de 60s siempre visible
-- Spinner inline "Actualizando..." durante refresh (tabla no desaparece)
+**Dashboard — "Pedidos por descargar":**
+- Tabla: Marca / Pendientes ahora / Hace 10 min / Variación (▲▼) / Estado / Hora consulta
+- Header: "Últ. consulta a Salesforce: HH:mm · Próxima consulta automática en: Xs"
+- Countdown basado en `LastCheckStore[BrandMonitor].CheckedAt` — siempre sincronizado con el checker real
+- Botón "↻ Consultar Salesforce": consulta Salesforce directamente, guarda en BD, resetea countdown a 3 min
+- Dashboard actualiza inmediatamente cuando el checker detecta datos nuevos (< 1s de delay)
+
+**"Hace 10 min"**: snapshot guardado hace ≥ 600 segundos en `brand_snapshots` — permite comparar tendencia.
+Si `pending_current > pending_previous` → ▲ acumulando (malo). Si `<` → ▼ descargando (bueno).
 
 **NOC:**
-- Tabla compacta con flechas de tendencia grandes
+- Tarjetas por marca con flecha de tendencia y conteo grande
 - Sin botón manual (NOC es vista pasiva)
-- Se actualiza automáticamente cada 15s
+- Se actualiza reactivamente cuando `LastCheckStore[BrandMonitor]` cambia
 
 ### Tiempos
 
 | Acción | Frecuencia |
 |--------|-----------|
-| BrandMonitorChecker → Salesforce | cada 3 min (prod) / 1 min (dev) |
-| Dashboard timer Brand Monitor | cada 60s |
-| Dashboard timer cards principales | cada 30s |
+| BrandMonitorChecker → Salesforce | **cada 3 min** (prod y dev) |
+| Dashboard Brand Monitor (lectura BD) | **Reactivo** — solo cuando hay datos nuevos en LastCheckStore |
+| Dashboard cards principales | cada 30s |
 | NOC refresh | cada 15s |
+| Retención snapshots | 48h (configurable `BrandMonitor:SnapshotRetentionHours`) |
 
 ---
 

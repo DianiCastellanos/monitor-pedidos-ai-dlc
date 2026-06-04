@@ -340,7 +340,7 @@ else
                 <tr>
                     <th>Marca</th>
                     <th class="text-center">Pendientes ahora</th>
-                    <th class="text-center">Consulta anterior</th>
+                    <th class="text-center">Hace 10 min</th>
                     <th class="text-center">Variación</th>
                     <th class="text-center">Estado</th>
                     <th>Hora consulta</th>
@@ -374,16 +374,18 @@ else
 
 @code {
     private const int CardsRefreshIntervalSeconds = 30;
-    private const int BrandUiRefreshIntervalSeconds = 60;  // poll UI — independiente del checker
 
     // Lee desde config en cada acceso; hot-reload actualiza sin restart
     private double BrandCheckerIntervalMinutes =>
         _config.GetValue("Monitoring:BrandMonitorPollIntervalMinutes", 3.0);
 
     private DateTimeOffset? _cardsLastUpdate  = null;
-    private DateTimeOffset? _brandLastUpdate  = null;  // cuándo el checker recolectó datos
+    private DateTimeOffset? _brandLastUpdate  = null;
+    // Último CheckedAt conocido del checker — detecta cuando hay datos nuevos
+    private DateTimeOffset  _brandLastCheckedAt = DateTimeOffset.MinValue;
     private int _cardsCountdown = CardsRefreshIntervalSeconds;
-    private int _brandCountdown = BrandUiRefreshIntervalSeconds;
+    // Countdown calculado desde LastCheckStore — siempre sincronizado con el checker real
+    private int _brandCountdown = 0;
     private List<DomainCard>             _domains           = BuildDefaultDomains();
     private List<Incident>               _openIncidents     = [];
     private IReadOnlyList<BrandSnapshot> _brandSnapshots  = [];
@@ -427,7 +429,6 @@ else
         Broadcaster.OnIncidentClosed += _closeHandler;
 
         _ = StartCardsTimerAsync(_cts.Token);
-        _ = StartBrandTimerAsync(_cts.Token);
     }
 
     private async Task StartCardsTimerAsync(CancellationToken ct)
@@ -437,32 +438,35 @@ else
             try
             {
                 await Task.Delay(1000, ct);
+
+                // — Cards (incidentes/módulos): countdown propio cada 30s —
                 _cardsCountdown--;
                 if (_cardsCountdown <= 0)
                 {
                     _cardsCountdown = CardsRefreshIntervalSeconds;
                     await RefreshIncidentsAsync();
                 }
-                await InvokeAsync(StateHasChanged);
-            }
-            catch (OperationCanceledException) { break; }
-            catch { }
-        }
-    }
 
-    private async Task StartBrandTimerAsync(CancellationToken ct)
-    {
-        while (!ct.IsCancellationRequested)
-        {
-            try
-            {
-                await Task.Delay(1000, ct);
-                _brandCountdown--;
-                if (_brandCountdown <= 0)
+                // — Brand Monitor: sincronizado con LastCheckStore del checker —
+                var checkerIntervalSec = (int)(BrandCheckerIntervalMinutes * 60);
+                if (LastCheckStore.Results.TryGetValue(ModuleId.BrandMonitor, out var brandResult))
                 {
-                    _brandCountdown = BrandUiRefreshIntervalSeconds;
-                    await RefreshBrandAsync();
+                    var secondsSince = (int)(DateTimeOffset.UtcNow - brandResult.CheckedAt).TotalSeconds;
+                    _brandCountdown  = Math.Max(0, checkerIntervalSec - secondsSince);
+
+                    // El checker guardó datos nuevos → leer BD inmediatamente
+                    if (brandResult.CheckedAt > _brandLastCheckedAt)
+                    {
+                        _brandLastCheckedAt = brandResult.CheckedAt;
+                        await RefreshBrandAsync();
+                    }
                 }
+                else
+                {
+                    // Checker aún no ha corrido → cuenta regresiva simple
+                    _brandCountdown = Math.Max(0, _brandCountdown - 1);
+                }
+
                 await InvokeAsync(StateHasChanged);
             }
             catch (OperationCanceledException) { break; }
@@ -552,7 +556,7 @@ else
             // Botón manual: consulta Salesforce en vivo, guarda snapshot y resetea el timer
             if (isManual)
             {
-                _brandCountdown = BrandUiRefreshIntervalSeconds;
+                _brandCountdown = (int)(BrandCheckerIntervalMinutes * 60);
                 await BrandMonitorService.SimulateAndRefreshAsync();
             }
 
