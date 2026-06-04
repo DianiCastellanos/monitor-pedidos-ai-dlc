@@ -38,12 +38,14 @@ public sealed class OrderSyncService : BackgroundService
 
     private async Task RunSyncAsync(CancellationToken ct)
     {
-        var sourceCs = _config.GetConnectionString("ProductionDb");
+        // SyncSourceDb = vtainternet_qa (fuente original)
+        // DefaultConnection = MonitorPedidosDb (destino — misma BD de la app)
+        var sourceCs = _config.GetConnectionString("SyncSourceDb");
         var targetCs = _config.GetConnectionString("DefaultConnection");
 
         if (string.IsNullOrWhiteSpace(sourceCs) || string.IsNullOrWhiteSpace(targetCs))
         {
-            _logger.LogWarning("[OrderSync] Cadenas de conexión no configuradas — saltando sincronización");
+            _logger.LogWarning("[OrderSync] SyncSourceDb no configurado — sincronización desactivada");
             return;
         }
 
