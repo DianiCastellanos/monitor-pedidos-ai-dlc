@@ -7,6 +7,7 @@
 @inject IBrandMonitorService BrandMonitorService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject LastCheckStore LastCheckStore
+@inject IServiceScopeFactory ScopeFactory
 @inject ILogger<Dashboard> _logger
 @inject IConfiguration _config
 
@@ -479,9 +480,79 @@ else
         _refreshing = true;
         _cardsCountdown = CardsRefreshIntervalSeconds;
         StateHasChanged();
+
+        // 1. Ejecutar todos los checkers AHORA (M2, M3, M4, M11)
+        await RunCheckersNowAsync();
+
+        // Pequeña espera para que los writes en BD completen antes de leer
+        await Task.Delay(300);
+
+        // 2. Leer resultados actualizados en la UI
         await RefreshAllAsync();
+
         _refreshing = false;
         StateHasChanged();
+    }
+
+    // Corre M2/M3/M4 inmediatamente con timeout corto (5s) para respuesta rápida.
+    // M11 (Jobs) usa timeout propio y no bloquea — su resultado llega cuando pueda.
+    private async Task RunCheckersNowAsync()
+    {
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var checkers      = scope.ServiceProvider.GetRequiredService<IEnumerable<ICheckExecutor>>();
+            var monitoringSvc = scope.ServiceProvider.GetRequiredService<IMonitoringService>();
+
+            const int fastTimeoutMs = 5_000;   // 5s para M2/M3/M4 — deben ser rápidos
+            const int slowTimeoutMs = 10_000;  // 10s para M11 — puede estar inaccesible
+
+            var tasks = checkers
+                .Where(c => c.Module != ModuleId.BrandMonitor)
+                .Select(async checker =>
+                {
+                    var ms = checker.Module == ModuleId.JobsMonitor ? slowTimeoutMs : fastTimeoutMs;
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+                    cts.CancelAfter(ms);
+                    try { await monitoringSvc.RunCheckAsync(checker, cts.Token); }
+                    catch (OperationCanceledException) { /* timeout — M11 registra warning en el checker */ }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("Chequear ahora {Module}: {Msg}", checker.Module, ex.Message);
+                    }
+                });
+
+            // M11 no bloquea — corre en background y su resultado aparece en el próximo StateHasChanged
+            var fastCheckers = checkers.Where(c =>
+                c.Module != ModuleId.BrandMonitor && c.Module != ModuleId.JobsMonitor).ToList();
+
+            var fastTasks = fastCheckers.Select(async checker =>
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+                cts.CancelAfter(fastTimeoutMs);
+                try { await monitoringSvc.RunCheckAsync(checker, cts.Token); }
+                catch { }
+            });
+
+            // Espera solo los checkers rápidos (M2/M3/M4) — resultado en ~5s
+            await Task.WhenAll(fastTasks);
+
+            // M11 corre sin bloquear (fire-and-forget con timeout propio)
+            var m11 = checkers.FirstOrDefault(c => c.Module == ModuleId.JobsMonitor);
+            if (m11 is not null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    using var cts = new CancellationTokenSource(slowTimeoutMs);
+                    try { await monitoringSvc.RunCheckAsync(m11, cts.Token); }
+                    catch { }
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("RunCheckersNowAsync: {Msg}", ex.Message);
+        }
     }
 
     private async Task RefreshAllAsync()
@@ -858,6 +929,8 @@ else
 @using MonitorPedidos.Domain.Alerts
 @using MonitorPedidos.Domain.Dashboard
 @using MonitorPedidos.Domain.Incidents
+@using MonitorPedidos.Domain.Monitoring
 @using MonitorPedidos.Domain.Shared
+@using MonitorPedidos.Web.Features.Monitoring
 @using MonitorPedidos.Web.Services
 @using System.Security.Claims
