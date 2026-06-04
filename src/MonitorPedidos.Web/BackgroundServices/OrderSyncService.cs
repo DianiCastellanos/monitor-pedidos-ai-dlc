@@ -49,60 +49,67 @@ public sealed class OrderSyncService : BackgroundService
 
         try
         {
-            // Ventana de sincronización: últimas 48 horas (cubre lo que M2 necesita con margen)
-            var windowHours = _config.GetValue("OrderSync:WindowHours", 48);
-            var from        = DateTime.Now.AddHours(-windowHours);
+            // Ventana de sincronización configurable (default 30 días para capturar historial)
+            var windowDays = _config.GetValue("OrderSync:WindowDays", 30);
+            var from       = DateTime.Now.AddDays(-windowDays);
 
-            // 1. Leer desde vtainternet_qa
+            // 1. Leer desde vtainternet_qa — solo columnas necesarias para M2 y Brand Monitor
             IEnumerable<OrderRow> sourceRows;
             await using (var sourceConn = new SqlConnection(sourceCs))
             {
                 sourceRows = await sourceConn.QueryAsync<OrderRow>(
-                    @"SELECT IdOrder, Seller, ChannelName, CreationDate,
-                             FechaGeneracion, EstadoFactura, EstadoActualOrden
+                    @"SELECT IdAutOrder, IdOrder, Seller, ChannelName,
+                             CreationDate, FechaGeneracion,
+                             EstadoFactura, EstadoActualOrden
                       FROM oc_encabezado WITH (NOLOCK)
-                      WHERE FechaGeneracion >= @From",
+                      WHERE FechaGeneracion >= @From
+                      ORDER BY IdAutOrder ASC",
                     new { From = from },
-                    commandTimeout: 30);
+                    commandTimeout: 60);
             }
 
             var rows = sourceRows.AsList();
             if (rows.Count == 0)
             {
-                _logger.LogInformation("[OrderSync] Sin registros nuevos desde {From:HH:mm} — nada que sincronizar", from);
+                _logger.LogInformation("[OrderSync] Sin registros en los últimos {D} días — nada que sincronizar", windowDays);
                 return;
             }
 
-            // 2. Upsert en MonitorPedidosDb usando MERGE
+            // 2. MERGE en MonitorPedidosDb — PK = IdAutOrder (auto-incremental de vtainternet_qa)
             await using var targetConn = new SqlConnection(targetCs);
             await targetConn.OpenAsync(ct);
 
             const string mergeSql = @"
                 MERGE [dbo].[oc_encabezado] AS target
-                USING (SELECT @IdOrder, @Seller, @ChannelName, @CreationDate,
-                              @FechaGeneracion, @EstadoFactura, @EstadoActualOrden)
-                      AS source (IdOrder, Seller, ChannelName, CreationDate,
-                                 FechaGeneracion, EstadoFactura, EstadoActualOrden)
-                ON target.IdOrder = source.IdOrder
+                USING (SELECT @IdAutOrder, @IdOrder, @Seller, @ChannelName,
+                              @CreationDate, @FechaGeneracion,
+                              @EstadoFactura, @EstadoActualOrden)
+                      AS source (IdAutOrder, IdOrder, Seller, ChannelName,
+                                 CreationDate, FechaGeneracion,
+                                 EstadoFactura, EstadoActualOrden)
+                ON target.IdAutOrder = source.IdAutOrder
                 WHEN MATCHED THEN
-                    UPDATE SET Seller            = source.Seller,
+                    UPDATE SET IdOrder           = source.IdOrder,
+                               Seller            = source.Seller,
                                ChannelName       = source.ChannelName,
                                CreationDate      = source.CreationDate,
                                FechaGeneracion   = source.FechaGeneracion,
                                EstadoFactura     = source.EstadoFactura,
                                EstadoActualOrden = source.EstadoActualOrden
                 WHEN NOT MATCHED THEN
-                    INSERT (IdOrder, Seller, ChannelName, CreationDate,
-                            FechaGeneracion, EstadoFactura, EstadoActualOrden)
-                    VALUES (source.IdOrder, source.Seller, source.ChannelName,
-                            source.CreationDate, source.FechaGeneracion,
-                            source.EstadoFactura, source.EstadoActualOrden);";
+                    INSERT (IdAutOrder, IdOrder, Seller, ChannelName,
+                            CreationDate, FechaGeneracion,
+                            EstadoFactura, EstadoActualOrden)
+                    VALUES (source.IdAutOrder, source.IdOrder, source.Seller,
+                            source.ChannelName, source.CreationDate,
+                            source.FechaGeneracion, source.EstadoFactura,
+                            source.EstadoActualOrden);";
 
-            var affected = await targetConn.ExecuteAsync(mergeSql, rows, commandTimeout: 60);
+            var affected = await targetConn.ExecuteAsync(mergeSql, rows, commandTimeout: 120);
 
             _logger.LogInformation(
-                "[OrderSync] Sincronizados {Count} registros desde vtainternet_qa → MonitorPedidosDb (ventana={H}h)",
-                affected, windowHours);
+                "[OrderSync] ✓ {Count} registros sincronizados vtainternet_qa → MonitorPedidosDb (ventana={D} días)",
+                affected, windowDays);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -114,14 +121,16 @@ public sealed class OrderSyncService : BackgroundService
     }
 
     // Clase con setters para compatibilidad con Dapper
+    // EstadoActualOrden es INT en vtainternet_qa (no varchar)
     private sealed class OrderRow
     {
-        public string    IdOrder           { get; set; } = "";
+        public decimal   IdAutOrder        { get; set; }   // PK numérico auto-incremental
+        public string?   IdOrder           { get; set; }
         public string?   Seller            { get; set; }
-        public string    ChannelName       { get; set; } = "";
+        public string?   ChannelName       { get; set; }
         public DateTime? CreationDate      { get; set; }
-        public DateTime  FechaGeneracion   { get; set; }
+        public DateTime? FechaGeneracion   { get; set; }
         public string?   EstadoFactura     { get; set; }
-        public string?   EstadoActualOrden { get; set; }
+        public int?      EstadoActualOrden { get; set; }   // INT en origen
     }
 }
