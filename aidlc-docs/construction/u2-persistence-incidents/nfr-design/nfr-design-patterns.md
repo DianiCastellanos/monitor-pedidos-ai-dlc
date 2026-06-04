@@ -1,4 +1,4 @@
-# NFR Design Patterns — U2 Persistence & Incidents
+﻿# NFR Design Patterns — U2 Persistence & Incidents
 
 **Unidad:** U2 — Persistence & Incidents
 **Stage:** Construction → NFR Design
@@ -164,9 +164,9 @@ Sin cargar ninguna entidad en memoria.
 
 ---
 
-## ADR-U2-04 — Tests de Integración con LocalDB Real
+## ADR-U2-04 — Tests de Integración con MonitorPedidosDb Real
 
-**Flujo:** Pregunta (¿cómo testear constraints de BD y comportamiento EF Core?) → NFR-U2-04 → **Patrón Integration Tests con WebApplicationFactory + LocalDB**
+**Flujo:** Pregunta (¿cómo testear constraints de BD y comportamiento EF Core?) → NFR-U2-04 → **Patrón Integration Tests con WebApplicationFactory + MonitorPedidosDb**
 
 | Campo | Detalle |
 |-------|---------|
@@ -188,7 +188,7 @@ public sealed class TestWebAppFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
-        // Usar LocalDB real — misma cadena de conexión con BD de test separada
+        // Usar MonitorPedidosDb real — misma cadena de conexión con BD de test separada
         builder.ConfigureServices(services =>
         {
             // Reemplazar connection string con BD de test
@@ -217,7 +217,7 @@ public sealed class TestWebAppFactory : WebApplicationFactory<Program>
 - La BD de test se crea/migra automáticamente antes de cada test suite
 
 **Negativas:**
-- Requiere LocalDB instalado en la máquina de desarrollo y CI
+- Requiere MonitorPedidosDb instalado en la máquina de desarrollo y CI
 - Tests más lentos que InMemory (~500ms vs ~50ms por test)
 
 ---
@@ -229,4 +229,4 @@ public sealed class TestWebAppFactory : WebApplicationFactory<Program>
 | NFR-U2-01, BR-INC-01 | Try-Catch + Re-Query (idempotencia concurrente) | ADR-U2-01 |
 | NFR-U2-02, RNF-01 | AsNoTracking en lecturas / Tracking en escrituras | ADR-U2-02 |
 | BR-PURGE-01, BR-PURGE-02 | ExecuteDeleteAsync (bulk delete sin cargar memoria) | ADR-U2-03 |
-| NFR-U2-04 | WebApplicationFactory + LocalDB real | ADR-U2-04 |
+| NFR-U2-04 | WebApplicationFactory + MonitorPedidosDb real | ADR-U2-04 |

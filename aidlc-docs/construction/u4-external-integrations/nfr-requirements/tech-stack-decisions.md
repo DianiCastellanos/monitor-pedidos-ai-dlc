@@ -1,4 +1,4 @@
-# Tech Stack Decisions — U4 External Integrations
+﻿# Tech Stack Decisions — U4 External Integrations
 
 **Unidad:** U4 — External Integrations
 **Stage:** Construction → NFR Requirements
@@ -80,7 +80,7 @@ client.BaseAddress = new Uri("https://api.salesforce.test/");
 | ASP.NET Core 8 | 8.x | Proyecto `MonitorPedidos.Web` |
 | Blazor Server | 8.x | UI de `IncidentDetailPage` con sección auto_reintentos |
 | EF Core 8 | 8.x | Columna `retry_metadata` (nvarchar(max), nullable) en `incidents` |
-| SQL Server LocalDB | 2019+ | Base de datos de desarrollo |
+| SQL Server MonitorPedidosDb (172.16.0.41) | 2019+ | Base de datos de desarrollo |
 | Serilog | 3.x | Nivel Debug para OK, Warning para reintentos, Error para incidentes |
 | Moq | 4.x | Tests de checkers (`SalesforceApiChecker`, `MultivendeApiChecker`) |
 | xUnit | 2.x | Framework de test para `MonitorPedidos.UnitTests` |

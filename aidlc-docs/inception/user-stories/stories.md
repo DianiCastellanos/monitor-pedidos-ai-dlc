@@ -1,4 +1,4 @@
-# User Stories — MonitorPedidos AI
+﻿# User Stories — MonitorPedidos AI
 
 **Fecha:** 2026-05-21
 **Versión:** 1.1 (2026-05-24 — agrega US-30 BrandMonitor; actualiza trazabilidad RF-31; actualiza cobertura a 30/31 RFs)
@@ -468,12 +468,12 @@
 ### US-26 — Cifrado at-rest + transporte cifrado a la BD
 
 **Como** IT/Seguridad,
-**quiero** cifrado at-rest en SQL Server LocalDB y canal cifrado al motor de BD,
+**quiero** cifrado at-rest en SQL Server MonitorPedidosDb (172.16.0.41) y canal cifrado al motor de BD,
 **para** proteger datos sensibles (credenciales hasheadas, incidentes, historial de reglas) en disco y en tránsito.
 
 **Criterios de aceptación:**
 
-- *Given* SQL Server LocalDB / Express, *when* la BD se aprovisiona, *then* el archivo de datos está cifrado (TDE o cifrado de archivo del usuario) según las opciones disponibles del motor.
+- *Given* SQL Server MonitorPedidosDb (172.16.0.41) / Express, *when* la BD se aprovisiona, *then* el archivo de datos está cifrado (TDE o cifrado de archivo del usuario) según las opciones disponibles del motor.
 - *Given* la app abre conexión a la BD, *when* la connection string se evalúa, *then* incluye TLS / canal seguro habilitado (`Encrypt=True`).
 - *Given* el dashboard se sirve por red interna del equipo, *when* se accede desde otro equipo, *then* la transmisión usa HTTPS con certificado de desarrollo de ASP.NET Core (RNF-07 escenario b).
 

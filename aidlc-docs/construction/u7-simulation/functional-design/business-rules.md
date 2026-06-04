@@ -1,4 +1,4 @@
-# Business Rules — U7 Simulation & Red-Teaming
+﻿# Business Rules — U7 Simulation & Red-Teaming
 
 **Unidad:** U7 — Simulation & Red-Teaming
 **Stage:** Construction → Functional Design
@@ -26,7 +26,7 @@
 |----|-------|-----------|----------------------|
 | BR-RT-01 | **RT1** (job SF apagado): con `NoOrdersMode=true` O con `simulated_job_statuses.status='Failed'` para `SalesforceDownload`, el sistema emite `CheckResult.Critical` en el siguiente tick (< 5 min). La causa debe clasificarse como `Job`. | RT1 | Incidente en `incidents` con `causa=Job`; alerta en `RealtimePage` en < 5 min |
 | BR-RT-02 | **RT2** (token SF revocado): con credencial de Salesforce inválida en User Secrets, `SalesforceApiChecker` recibe HTTP 401, **no reintenta** (Polly ADR-U4-01) y emite `Critical` con `causa=Token` + referencia `SOP-001` en `accion_sugerida`. | RT2 | `retry_metadata` vacío o null; `IncidentDetailPage` muestra SOP-001 |
-| BR-RT-03 | **RT3** (SQL apagado): con SQL Server LocalDB detenido, `DbHealthChecker` falla al abrir conexión y emite `Critical` inmediato. El tiempo de detección debe ser < 1 min desde que el servicio se detiene. | RT3 | Incidente CRITICAL con `causa=DbHealth` visible en RealtimePage |
+| BR-RT-03 | **RT3** (SQL apagado): con SQL Server MonitorPedidosDb (172.16.0.41) detenido, `DbHealthChecker` falla al abrir conexión y emite `Critical` inmediato. El tiempo de detección debe ser < 1 min desde que el servicio se detiene. | RT3 | Incidente CRITICAL con `causa=DbHealth` visible en RealtimePage |
 | BR-RT-04 | **RT5** (estado incorrecto): pedidos con `IsFailure=true` aparecen en `DiscrepanciesPage` **sin** generar alerta WARN/CRITICAL al operador. El dashboard no muestra estado degradado por esta condición. | RT5 | `DiscrepanciesPage` lista los pedidos; `RealtimePage` permanece en Ok para DbOrders |
 | BR-RT-05 | **RT7** (cancelado ignorado): un pedido con `Status="Cancelled"` en `simulated_orders` **no** genera incidente. `DbOrderChecker` cuenta solo pedidos con `Status` válido (Pending/Processing). | RT7 | Sin incidente generado; checker retorna Ok |
 | BR-RT-06 | **RT-Persist** (cerrar/reabrir dashboard): los incidentes abiertos persisten en SQL Server. Al reabrir el navegador, `RealtimePage.OnInitializedAsync` carga el estado actual desde `IIncidentService` — el estado CRITICAL sigue visible. | RT-Persist | Estado correcto al reabrir sin reload del servidor |

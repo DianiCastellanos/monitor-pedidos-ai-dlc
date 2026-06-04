@@ -1,4 +1,4 @@
-# PRD — MonitorPedidos AI (v2.5)
+﻿# PRD — MonitorPedidos AI (v2.5)
 
 **Empresa:** MANUFACTURAS ELIOT  
 **Sponsor:** Alex Cárdenas (Jefe de Análisis de Sistemas)  
@@ -184,7 +184,7 @@ La arquitectura permite su futura exposición controlada en fases posteriores si
 
 El sistema MonitorPedidos AI se ejecuta únicamente en un entorno controlado:
 - **Aplicación web:** ASP.NET Core ejecutado en `localhost` (entorno de desarrollo) o en una máquina dentro de la red interna (LAN) con HTTPS habilitado mediante certificado de desarrollo.
-- **Base de datos:** SQL Server LocalDB / Express, con datos simulados para la demo.
+- **Base de datos:** SQL Server MonitorPedidosDb (172.16.0.41) / Express, con datos simulados para la demo.
 - **Acceso:** restringido a los miembros del equipo (analista operativo y responsable técnico) que tengan acceso físico o de red al equipo donde corre la aplicación.
 - **Exposición a internet:** No se utiliza ni se requiere ngrok, túneles, dominios públicos ni servicios cloud. La demostración se realiza compartiendo pantalla localmente o accediendo desde otro equipo de la red interna.
 
@@ -252,7 +252,7 @@ El sistema MonitorPedidos AI se ejecuta únicamente en un entorno controlado:
 - TBDs se cierran durante semana 1.
 
 **Sprint 1 (semana 1):**  
-- Setup .NET 8 + SQL Server LocalDB.  
+- Setup .NET 8 + SQL Server MonitorPedidosDb (172.16.0.41).  
 - M1, M2, M9 básicos.  
 - Tabla `incidents` poblándose.
 

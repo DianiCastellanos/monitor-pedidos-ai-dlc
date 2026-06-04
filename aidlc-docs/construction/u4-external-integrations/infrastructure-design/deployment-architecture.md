@@ -1,4 +1,4 @@
-# Deployment Architecture — U4 External Integrations
+﻿# Deployment Architecture — U4 External Integrations
 
 **Unidad:** U4 — External Integrations
 **Stage:** Construction → Infrastructure Design
@@ -65,7 +65,7 @@ graph TD
 
         end
 
-        subgraph DB["SQL Server LocalDB"]
+        subgraph DB["SQL Server MonitorPedidosDb (172.16.0.41)"]
             INC["incidents\n+ retry_metadata nullable\ncolumna JSON"]
             USR["users"]
             JOB["jobs"]

@@ -37,4 +37,4 @@ Capa de persistencia: entidades de dominio, repositorios EF Core, servicio de in
 
 ## Definition of Ready
 - U1 completada (002 done)
-- SQL Server LocalDB disponible
+- SQL Server MonitorPedidosDb (172.16.0.41) disponible

@@ -28,19 +28,15 @@
 │  ┌──────────────────┐                   │
 │  │  monitorpedidos  │ :5000 → :80       │
 │  │  (app .NET 8)    │                   │
-│  └────────┬─────────┘                   │
-│           │                             │
-│  ┌────────▼─────────┐                   │
-│  │  sqlserver-app   │ :1433 (interno)   │
-│  │  (AppDb interna) │                   │
 │  └──────────────────┘                   │
 │                                         │
 └─────────────────────────────────────────┘
-        │                    │
-        ▼                    ▼
-  <IP_SERVIDOR_BD>     account.demandware.com
-  (ProductionDb        (Salesforce OCAPI)
-   READ-ONLY)
+        │                │                │
+        ▼                ▼                ▼
+  172.16.0.41       192.168.20.91   account.demandware.com
+  MonitorPedidosDb  vtainternet_qa  (Salesforce OCAPI)
+  (AppDb R/W)       (ProductionDb   
+                     READ-ONLY M2)
 ```
 
 ---
@@ -173,7 +169,8 @@ Crear `.env.docker` en la raíz (también gitignored — agregar a `.gitignore`)
 
 ```bash
 # BD de la aplicación — apunta al contenedor SQL Server
-ConnectionStrings__DefaultConnection=Server=sqlserver-app,1433;Database=MonitorPedidosDb;User Id=sa;Password=Monitor@2024!Strong;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;ConnectRetryCount=3
+# App DB — MonitorPedidosDb en servidor interno (escritura)
+ConnectionStrings__DefaultConnection=Server=tcp:172.16.0.41,1433;Database=MonitorPedidosDb;User Id=<DB_USER>;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;ConnectRetryCount=0
 
 # BD de producción — READ-ONLY — apunta al servidor real de la empresa
 ConnectionStrings__ProductionDb=Server=tcp:<IP_SERVIDOR_BD>,1433;Database=<NOMBRE_BD_PRODUCCION>;User Id=<DB_USER>;Password=<DB_PASSWORD>;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;ConnectRetryCount=0

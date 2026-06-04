@@ -1,4 +1,4 @@
-# Logical Components — U2 Persistence & Incidents
+﻿# Logical Components — U2 Persistence & Incidents
 
 **Unidad:** U2 — Persistence & Incidents
 **Stage:** Construction → NFR Design
@@ -249,7 +249,7 @@ GetOpenByModuleAsync(moduleId)
 | IncidentRepository.AddOrGetExistingAsync | ADR-U2-01 | NFR-U2-01 | US-05 | SECURITY-05 |
 | AsNoTracking en lecturas | ADR-U2-02 | NFR-U2-02 | US-11, US-12 | — |
 | IncidentRepository.PurgeExpiredAsync | ADR-U2-03 | BR-PURGE-01 | RF-21 | — |
-| TestWebAppFactory con LocalDB | ADR-U2-04 | NFR-U2-04 | US-13, US-14 | SECURITY-05 |
+| TestWebAppFactory con MonitorPedidosDb | ADR-U2-04 | NFR-U2-04 | US-13, US-14 | SECURITY-05 |
 | HistoricPage | — | RNF-01 | US-11 | SECURITY-08 |
 | WeeklySummaryPage | — | RNF-01 | US-12 | SECURITY-08 |
 | IncidentDetailPage | — | RF-20 | US-13 | SECURITY-06, SECURITY-08 |

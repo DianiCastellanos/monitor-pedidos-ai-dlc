@@ -1,4 +1,4 @@
-# Registro de Decisiones de Arquitectura (ADR Index) — MonitorPedidos AI
+﻿# Registro de Decisiones de Arquitectura (ADR Index) — MonitorPedidos AI
 
 **Proyecto:** MonitorPedidos AI — Manufacturas Eliot
 **Owner:** Diana Castellanos
@@ -22,7 +22,7 @@ Un **Architecture Decision Record** documenta una decisión de arquitectura sign
 | ADR-003 | SignalR Hub para notificaciones en tiempo real | Pendiente | — | Comunicación | Alto |
 | ADR-004 | BackgroundService + PeriodicTimer para scheduling | Pendiente | — | Infraestructura | Alto |
 | ADR-005 | ASP.NET Core Identity con sesiones HTTP cookie (no JWT) | Pendiente | — | Seguridad | Alto |
-| ADR-006 | SQL Server LocalDB como motor de datos del MVP | Pendiente | — | Datos | Alto |
+| ADR-006 | SQL Server MonitorPedidosDb (172.16.0.41) como motor de datos del MVP | Pendiente | — | Datos | Alto |
 | ADR-007 | 5 Application Services por capability (no CQRS/MediatR) | Pendiente | — | Diseño de servicios | Alto |
 | ADR-008 | Política de reintentos Polly: máx 2, solo 5xx/timeout, sin renovación automática de token | Pendiente | — | Resiliencia | Medio |
 | ADR-009 | Despliegue exclusivo en localhost/red interna (sin nube, sin ngrok) | Pendiente | — | Despliegue | Medio |
@@ -54,7 +54,7 @@ Los siguientes ADRs son candidatos a generarse durante la fase de **Construction
 | 2 | ADR-005 Identity / cookies | Antes de comenzar U1 (Foundation) |
 | 3 | ADR-004 BackgroundService | Antes de comenzar U3 (Detection & Classification) |
 | 4 | ADR-003 SignalR Hub | Junto con ADR-002 (U6) |
-| 5 | ADR-006 SQL Server LocalDB | Antes de comenzar U2 (Persistence & Incidents) |
+| 5 | ADR-006 SQL Server MonitorPedidosDb (172.16.0.41) | Antes de comenzar U2 (Persistence & Incidents) |
 | 6 | ADR-007 Application Services | Antes de comenzar cualquier unidad |
 | 7 | ADR-008 Política de reintentos | Antes de U4 (External Integrations) |
 | 8 | ADR-009 Despliegue local | Al cierre de Inception o inicio de Construction |

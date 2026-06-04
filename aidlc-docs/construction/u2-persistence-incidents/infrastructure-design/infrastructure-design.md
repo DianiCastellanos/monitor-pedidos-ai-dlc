@@ -1,4 +1,4 @@
-# Infrastructure Design — U2 Persistence & Incidents
+﻿# Infrastructure Design — U2 Persistence & Incidents
 
 **Unidad:** U2 — Persistence & Incidents
 **Stage:** Construction → Infrastructure Design
@@ -24,7 +24,7 @@ U2 corre dentro del mismo proceso que U1. No agrega servicios externos, ni cambi
 | Componente U1 | Uso en U2 |
 |--------------|-----------|
 | `AppDbContext` | Agrega `DbSet<Incident>` y aplica `IncidentConfiguration` |
-| `LocalDB (MonitorPedidosDb)` | Tabla `incidents` creada por migration de U2 |
+| `MonitorPedidosDb (MonitorPedidosDb)` | Tabla `incidents` creada por migration de U2 |
 | Kestrel (`:7001` / `:5001`) | Sin cambios — U2 expone páginas Blazor bajo las rutas `/incidents/*` |
 | Serilog (File Sink) | `IncidentService` e `IncidentMaintenanceService` usan `ILogger<T>` del mismo sink |
 | `FallbackPolicy` (U1 Authorization) | Protege automáticamente `/incidents`, `/incidents/weekly`, `/incidents/{id:guid}` |

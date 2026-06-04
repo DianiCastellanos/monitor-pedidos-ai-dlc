@@ -13,10 +13,10 @@ parent: null
 # 010 — IT1 — PostgreSQL a SQL Server + Dual DB
 
 ## Summary
-Migracion de PostgreSQL a SQL Server LocalDB. Dual DB: AppDb (EF Core R/W) + ProductionDb (Dapper READ-ONLY).
+Migracion de PostgreSQL a SQL Server MonitorPedidosDb (172.16.0.41). Dual DB: AppDb (EF Core R/W) + ProductionDb (Dapper READ-ONLY).
 
 ## Acceptance Criteria
-- [x] App funciona con SQL Server LocalDB
+- [x] App funciona con SQL Server MonitorPedidosDb (172.16.0.41)
 - [x] ProductionDb conecta a oc_encabezado (solo SELECT)
 - [x] Dual DB operativa sin conflictos
 

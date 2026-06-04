@@ -1,4 +1,4 @@
-# NFR Requirements — U1 Foundation & Cross-Cutting
+﻿# NFR Requirements — U1 Foundation & Cross-Cutting
 
 **Unidad:** U1 — Foundation & Cross-Cutting
 **Stage:** Construction → NFR Requirements
@@ -14,7 +14,7 @@ Estos NFRs están completamente especificados en `requirements.md` v1.2 y se imp
 
 | ID | Requerimiento | Implementación en U1 | Fuente |
 |----|---------------|---------------------|--------|
-| RNF-06 | Cifrado at-rest LocalDB + canal cifrado a BD | TDE o cifrado de archivo LocalDB; connection string con `Encrypt=True` | SECURITY-01 |
+| RNF-06 | Cifrado at-rest MonitorPedidosDb + canal cifrado a BD | TDE o cifrado de archivo MonitorPedidosDb; connection string con `Encrypt=True` | SECURITY-01 |
 | RNF-07 | HTTPS cuando red interna | `app.UseHttpsRedirection()` condicional; dev-certs en entornos multi-equipo | SECURITY-01 (parcial) |
 | RNF-08 | Logging sin PII | Serilog con filtros por nombre de campo (`password`, `token`, `secret`) | SECURITY-03, SECURITY-14 |
 | RNF-10 | Input validation + consultas parametrizadas | DataAnnotations en PageModels; EF Core (parámetros automáticos) | SECURITY-05 |

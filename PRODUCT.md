@@ -1,4 +1,4 @@
-# MonitorPedidos AI — Product Overview
+﻿# MonitorPedidos AI — Product Overview
 
 **Empresa:** Manufacturas Eliot  
 **Owner:** Diana Castellanos  
@@ -203,7 +203,7 @@ Cada cambio de regla (creación, edición, activación, desactivación) genera u
 | Backend | ASP.NET Core 8 — Background Services (`PeriodicTimer`) | .NET 8 LTS |
 | Resiliencia | Polly v8 — 3 reintentos exponenciales + timeout 10s | v8.x |
 | ORM | Entity Framework Core 8 — Code First, migrations | 8.x |
-| Base de datos | SQL Server LocalDB / Express | LocalDB v15+ |
+| Base de datos | SQL Server MonitorPedidosDb (172.16.0.41) / Express | MonitorPedidosDb v15+ |
 | Logging | Serilog — campos estructurados sin PII | — |
 | Secretos | User Secrets (dev) / Variables de entorno (prod) | — |
 
@@ -324,7 +324,7 @@ Incident abierto → NotificationService
 └──────────────────────────┬──────────────────────────────────────┘
                            │  EF Core 8 — Code First
 ┌──────────────────────────▼──────────────────────────────────────┐
-│                    SQL Server LocalDB                           │
+│                    SQL Server MonitorPedidosDb (172.16.0.41)                           │
 │  incidents  │  rules  │  rule_conditions  │  rule_history       │
 │  brand_snapshots  │  simulated_orders (dev)                     │
 └─────────────────────────────────────────────────────────────────┘

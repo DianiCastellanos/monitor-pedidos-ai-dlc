@@ -1,4 +1,4 @@
-# Component Dependency — MonitorPedidos AI
+﻿# Component Dependency — MonitorPedidos AI
 
 **Fecha:** 2026-05-21
 **Versión:** 1.0
@@ -39,7 +39,7 @@ flowchart TB
 
     subgraph INFRA["🗄️ INFRASTRUCTURE"]
         Repos["Repositories<br/>(IRuleRepo, IRuleHistoryRepo,<br/>IIncidentRepo)"]
-        Db[("SQL Server<br/>LocalDB / Express")]
+        Db[("SQL Server<br/>MonitorPedidosDb / Express")]
         Sim["OrdersSimulatorService<br/>(BackgroundService)"]
         Log["Logging<br/>(Serilog estructurado)"]
         SecMW["Security Headers<br/>Middleware"]

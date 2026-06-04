@@ -1,4 +1,4 @@
-# Tech Stack Decisions — U2 Persistence & Incidents
+﻿# Tech Stack Decisions — U2 Persistence & Incidents
 
 **Unidad:** U2 — Persistence & Incidents
 **Stage:** Construction → NFR Requirements
@@ -14,7 +14,7 @@ U2 no introduce nuevas tecnologías. Reutiliza el stack completo de U1:
 | Capa | Tecnología | Versión | Fuente |
 |------|-----------|---------|--------|
 | ORM | Entity Framework Core 8 | 8.x | U1, ADR-001 |
-| BD | SQL Server LocalDB | 2019+ | U1, ADR-001 |
+| BD | SQL Server MonitorPedidosDb (172.16.0.41) | 2019+ | U1, ADR-001 |
 | Logging | Serilog (File Sink) | 3.x | U1, NFR-U1-03 |
 | Web | ASP.NET Core 8 + Blazor Server | — | U1, ADR-001 |
 | Tests | xUnit + WebApplicationFactory | — | U1, NFR-U1-05 |
@@ -189,4 +189,4 @@ public async Task AddAsync(Incident incident, CancellationToken ct)
 | Unique index filtrado | NFR-U2-01 | BR-INC-01 | SECURITY-05 |
 | AsNoTracking en lecturas | NFR-U2-02 | — | — |
 | Sin caché WeeklySummary | NFR-U2-03 | BR-WEEKLY-03 | — |
-| Tests con LocalDB real | NFR-U2-04 | BR-INC-01, BR-CLOSE-01 | SECURITY-05 |
+| Tests con MonitorPedidosDb real | NFR-U2-04 | BR-INC-01, BR-CLOSE-01 | SECURITY-05 |

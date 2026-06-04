@@ -1,4 +1,4 @@
-# Unit Test Instructions — MonitorPedidos
+﻿# Unit Test Instructions — MonitorPedidos
 
 **Fecha**: 2026-05-24
 **Proyecto**: MonitorPedidos — Manufacturas Eliot
@@ -53,7 +53,7 @@ La ejecución debe reportar **38 tests pasados, 0 fallos, 0 omitidos** en condic
 
 **Configuración de WebApplicationFactory**:
 ```csharp
-// En Program.cs o en el factory, usar base de datos InMemory o LocalDB de test
+// En Program.cs o en el factory, usar base de datos InMemory o MonitorPedidosDb de test
 // Ver §2 de integration-test-instructions.md para configuración detallada
 ```
 

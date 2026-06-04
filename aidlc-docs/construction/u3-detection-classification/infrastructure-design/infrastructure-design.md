@@ -1,4 +1,4 @@
-# Infrastructure Design — U3 Detection & Classification
+﻿# Infrastructure Design — U3 Detection & Classification
 
 **Unidad:** U3 — Detection & Classification
 **Stage:** Construction → Infrastructure Design
@@ -22,7 +22,7 @@
 | Componente U1/U2 | Uso en U3 |
 |-----------------|-----------|
 | `AppDbContext` | **Sin cambios en U3** — U7 agrega los DbSets de tablas simuladas |
-| `LocalDB (MonitorPedidosDb)` | Tablas simuladas creadas y gestionadas por U7 |
+| `MonitorPedidosDb (MonitorPedidosDb)` | Tablas simuladas creadas y gestionadas por U7 |
 | Kestrel | Sin cambios — U3 es 100% backend, sin nuevas rutas HTTP |
 | Serilog (File Sink) | `MonitoringService` y checkers usan el mismo sink de U1 |
 | `GlobalExceptionHandler` (U1) | Captura excepciones de `MonitoringService` si escalan |
@@ -46,7 +46,7 @@ U7 — Simulation & Red-Teaming
              SimulatedJobStatus      (entidad EF Core)
              AppDbContext.SimulatedOrders    (DbSet — agregado en U7)
              AppDbContext.SimulatedJobStatuses (DbSet — agregado en U7)
-             Migration AddSimulatedTables    (crea las tablas en LocalDB)
+             Migration AddSimulatedTables    (crea las tablas en MonitorPedidosDb)
              SimulatedOrderRepository : IOrderSource
              SimulatedJobStatusRepository : IJobStatusSource
 
@@ -104,7 +104,7 @@ dotnet sln MonitorPedidos.sln add tests/MonitorPedidos.UnitTests/MonitorPedidos.
 
 ### 4.4 Comparación de tiempos de ejecución
 
-| Proyecto | Requiere LocalDB | Tiempo estimado | Cuándo correr |
+| Proyecto | Requiere MonitorPedidosDb | Tiempo estimado | Cuándo correr |
 |---------|-----------------|----------------|---------------|
 | `MonitorPedidos.UnitTests` | No | < 2 segundos | En cada cambio (fast feedback) |
 | `MonitorPedidos.IntegrationTests` | Sí | 10-30 segundos | Antes de commit / en CI |
@@ -183,7 +183,7 @@ builder.Services.AddScoped<IJobStatusSource, SimulatedJobStatusRepository>();
 [ ] Agregar sección "Monitoring" en appsettings.json, .Development.json y .Testing.json
 [ ] Registrar servicios U3 en Program.cs (checkers + MonitoringService + HostedService)
 [ ] dotnet build → confirmar compilación sin errores
-[ ] dotnet test MonitorPedidos.UnitTests → T-U3-01, T-U3-02, T-U3-04 pasan (sin LocalDB)
+[ ] dotnet test MonitorPedidos.UnitTests → T-U3-01, T-U3-02, T-U3-04 pasan (sin MonitorPedidosDb)
 [ ] dotnet run → confirmar que MonitoringSchedulerService loggea arranque
 [ ] Esperar 1 minuto (Dev) → confirmar tick en logs: "Check OK: DbHealth"
 [ ] NOTA: IOrderSource e IJobStatusSource son registradas por U7.

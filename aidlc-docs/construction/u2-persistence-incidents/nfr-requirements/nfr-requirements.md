@@ -1,4 +1,4 @@
-# NFR Requirements — U2 Persistence & Incidents
+﻿# NFR Requirements — U2 Persistence & Incidents
 
 **Unidad:** U2 — Persistence & Incidents
 **Stage:** Construction → NFR Requirements
@@ -12,7 +12,7 @@
 | ID | Requerimiento | Aplicación en U2 |
 |----|---------------|-----------------|
 | RNF-01 | Respuesta UI < 2 segundos | `HistoricPage` y `WeeklySummaryPage` deben retornar en < 2s con paginación de 20 registros |
-| RNF-06 | Cifrado at-rest | Heredado de U1 — AppDbContext sobre LocalDB con cifrado configurado |
+| RNF-06 | Cifrado at-rest | Heredado de U1 — AppDbContext sobre MonitorPedidosDb con cifrado configurado |
 | RNF-08 | Logging sin PII | Los logs de apertura/cierre de incidentes no incluyen datos personales — solo ModuleId, Cause, Severity, rol |
 | RNF-10 | Queries parametrizadas | EF Core genera parámetros automáticamente — sin riesgo de SQL injection |
 | RNF-11 | Autorización en todas las rutas | FallbackPolicy de U1 protege HistoricPage, WeeklySummaryPage e IncidentDetailPage automáticamente |
@@ -87,7 +87,7 @@ public async Task AddAsync(Incident incident, ...)
 
 `GetWeeklySummaryAsync` ejecuta la consulta LINQ directamente en cada request, sin capa de caché.
 
-**Justificación:** con máximo 5 usuarios concurrentes y un volumen de incidentes de MVP (decenas, no millones), el GROUP BY sobre una semana es trivial para LocalDB. Añadir `IMemoryCache` introduce complejidad de invalidación sin beneficio medible.
+**Justificación:** con máximo 5 usuarios concurrentes y un volumen de incidentes de MVP (decenas, no millones), el GROUP BY sobre una semana es trivial para MonitorPedidosDb. Añadir `IMemoryCache` introduce complejidad de invalidación sin beneficio medible.
 
 **Condición de revisión:** si en operación real el volumen supera 10.000 incidentes por semana, reconsiderar en una iteración post-MVP.
 
@@ -99,11 +99,11 @@ public async Task AddAsync(Incident incident, ...)
 
 ---
 
-### NFR-U2-04 — Tests de integración con LocalDB real
+### NFR-U2-04 — Tests de integración con MonitorPedidosDb real
 
 **Decisión:** P4 = A
 
-Los tests de `IncidentRepository` e `IncidentService` usan `WebApplicationFactory<Program>` con la BD LocalDB real, no el proveedor InMemory.
+Los tests de `IncidentRepository` e `IncidentService` usan `WebApplicationFactory<Program>` con la BD MonitorPedidosDb real, no el proveedor InMemory.
 
 **Razón crítica:** el índice único filtrado de NFR-U2-01 **no existe en el proveedor InMemory** de EF Core. Los tests con InMemory no detectarían violaciones de concurrencia ni problemas de traducción LINQ → SQL.
 

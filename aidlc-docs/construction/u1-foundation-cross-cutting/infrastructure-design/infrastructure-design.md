@@ -1,4 +1,4 @@
-# Infrastructure Design — U1 Foundation & Cross-Cutting
+﻿# Infrastructure Design — U1 Foundation & Cross-Cutting
 
 **Unidad:** U1 — Foundation & Cross-Cutting
 **Stage:** Construction → Infrastructure Design
@@ -12,7 +12,7 @@
 | Aspecto | Decisión | Justificación |
 |---------|----------|---------------|
 | Compute | Kestrel embebido (`dotnet run`) | Sin IIS, sin Docker — MVP interno |
-| Base de datos | SQL Server LocalDB | ADR-001; sin servidor separado |
+| Base de datos | SQL Server MonitorPedidosDb (172.16.0.41) | ADR-001; sin servidor separado |
 | Migrations | Manual CLI (`dotnet ef database update`) | Control explícito; estándar .NET |
 | Data Protection keys | File system (`keys/`) | Sesiones sobreviven reinicios |
 | HTTPS | dotnet dev-certs (`https://localhost`) | SDK incluido; un comando por máquina |
@@ -24,7 +24,7 @@
 
 ## §2 Componentes lógicos → Infraestructura
 
-### 2.1 AppDbContext — SQL Server LocalDB
+### 2.1 AppDbContext — SQL Server MonitorPedidosDb (172.16.0.41)
 
 | Atributo | Valor |
 |----------|-------|
@@ -185,7 +185,7 @@ appsettings.*.local.json
 
 | Decisión de infraestructura | NFR / BR | SECURITY |
 |-----------------------------|----------|----------|
-| LocalDB + connection string | RNF-06, NFR-U1 | SECURITY-01 |
+| MonitorPedidosDb + connection string | RNF-06, NFR-U1 | SECURITY-01 |
 | Migration manual CLI | RNF-06 | SECURITY-01 |
 | Data Protection file system | RNF-14, BR-COOKIE-01 | SECURITY-12 |
 | HTTPS dev-certs | RNF-07 | SECURITY-01 (parcial) |

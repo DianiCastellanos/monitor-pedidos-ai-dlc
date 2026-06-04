@@ -1,4 +1,4 @@
-# Infrastructure Design Plan — U1 Foundation & Cross-Cutting
+﻿# Infrastructure Design Plan — U1 Foundation & Cross-Cutting
 
 **Stage:** Construction → Infrastructure Design
 **Unidad:** U1 — Foundation & Cross-Cutting
@@ -16,7 +16,7 @@
 |---------|----------|--------|
 | Entorno | Localhost / red interna del equipo | aidlc-state.md, PRD v2.4 |
 | Exposición pública | **Ninguna** — sin ngrok, sin internet | Restricción explícita del owner |
-| Motor de BD | SQL Server LocalDB (desarrollo/demo) | ADR-001, Inception |
+| Motor de BD | SQL Server MonitorPedidosDb (172.16.0.41) (desarrollo/demo) | ADR-001, Inception |
 | Connection string | `Server=(localdb)\mssqllocaldb;Database=MonitorPedidosDb;...` | tech-stack-decisions.md §5 |
 | Logging | Serilog → `logs/` relativo al ejecutable, rotación diaria, 90 días | NFR-U1-03 |
 | Hosting | Kestrel (`dotnet run`) — sin IIS, sin Docker para MVP | ADR-001 |

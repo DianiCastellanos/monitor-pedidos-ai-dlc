@@ -1,4 +1,4 @@
-# Performance Test Instructions — MonitorPedidos
+﻿# Performance Test Instructions — MonitorPedidos
 
 **Fecha**: 2026-05-24
 **Proyecto**: MonitorPedidos — Manufacturas Eliot
@@ -137,7 +137,7 @@ La performance de las queries depende de los índices definidos en las migration
 | `rules` | `(Module, IsActive)` | `AddRulesSchema` | Reglas activas por módulo |
 | `simulated_orders` | `CreatedAt DESC` | `AddSimulationSchema` | Visualización de pedidos simulados |
 
-**Verificar query plan en SQL Server LocalDB** (SQL Server Management Studio o Azure Data Studio):
+**Verificar query plan en SQL Server MonitorPedidosDb (172.16.0.41)** (SQL Server Management Studio o Azure Data Studio):
 
 ```sql
 -- Verificar que la query de historial usa índice (no table scan)

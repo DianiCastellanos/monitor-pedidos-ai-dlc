@@ -1,4 +1,4 @@
-# C4 Model — MonitorPedidos AI
+﻿# C4 Model — MonitorPedidos AI
 
 **Fecha:** 2026-05-22
 **Versión:** 1.1 — diagramas reescritos en sintaxis `flowchart` estándar (compatible con Mermaid 8+).
@@ -107,7 +107,7 @@ flowchart TB
 
         web["<b>MonitorPedidos.Web</b><br/><i>[Container: .NET 8 · ASP.NET Core · Blazor Server]</i><br/>Monolito modular. Hospeda:<br/>· Páginas Blazor (Realtime, Histórico, Semanal, Discrepancias, Reglas, Logs)<br/>· AlertsHub SignalR<br/>· 5 Application Services (Monitoring, RuleMgmt, Incident, Auth, Notification)<br/>· MonitoringScheduler (BackgroundService + PeriodicTimer 5/10 min)<br/>· OrdersSimulator (BackgroundService)<br/>· ASP.NET Core Identity<br/>· Security Headers Middleware + Global Exception Handler"]:::container
 
-        db[("<b>BD MonitorPedidos</b><br/><i>[Container BD: SQL Server LocalDB / Express]</i><br/>incidents · rules · rule_history<br/>simulated_orders · AspNetUsers/Roles<br/>Cifrado at-rest · Retención 90 días")]:::container
+        db[("<b>BD MonitorPedidos</b><br/><i>[Container BD: SQL Server MonitorPedidosDb (172.16.0.41) / Express]</i><br/>incidents · rules · rule_history<br/>simulated_orders · AspNetUsers/Roles<br/>Cifrado at-rest · Retención 90 días")]:::container
 
         logs[("<b>Logs estructurados</b><br/><i>[Container: Serilog · archivo rotado local]</i><br/>timestamp + request_id + level + mensaje<br/>SIN PII · SIN tokens · Retención 90 días")]:::container
     end
@@ -138,7 +138,7 @@ flowchart TB
 |-----------|------------|---------|
 | **Navegador del usuario** | Chrome / Edge | Cliente Blazor Server con circuito SignalR persistente. |
 | **MonitorPedidos.Web** | .NET 8 · ASP.NET Core · Blazor Server | Único proceso de app. UI + hubs + services + scheduler + simulator + selección de identidad (cookie auth) + middlewares. |
-| **BD MonitorPedidos** | SQL Server LocalDB / Express | Persistencia: incidentes, reglas + historial, datos simulados. Sin tablas de usuarios (identidad sin credenciales). Cifrado at-rest. |
+| **BD MonitorPedidos** | SQL Server MonitorPedidosDb (172.16.0.41) / Express | Persistencia: incidentes, reglas + historial, datos simulados. Sin tablas de usuarios (identidad sin credenciales). Cifrado at-rest. |
 | **Logs estructurados** | Serilog · archivo local rotado | Audit trail estructurado sin PII (RNF-08 + SECURITY-03). |
 
 **Comunicaciones clave:**

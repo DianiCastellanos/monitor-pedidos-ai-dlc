@@ -1,4 +1,4 @@
-# Functional Design Plan — U2 Persistence & Domain
+﻿# Functional Design Plan — U2 Persistence & Domain
 
 **Stage:** Construction → Functional Design
 **Unidad:** U2 — Persistence & Domain
@@ -23,7 +23,7 @@
 
 ## §1 Foco de U2
 
-U2 define el **modelo de dominio central** del sistema y la capa de persistencia sobre SQL Server LocalDB. Su aggregate root es `Incident`, que encapsula el ciclo de vida de un incidente detectado (Open → Acknowledged → Resolved). U2 también establece `AppDbContext` en la capa Infrastructure y las interfaces de servicio que las unidades superiores (U3, U4, U5) consumen.
+U2 define el **modelo de dominio central** del sistema y la capa de persistencia sobre SQL Server MonitorPedidosDb (172.16.0.41). Su aggregate root es `Incident`, que encapsula el ciclo de vida de un incidente detectado (Open → Acknowledged → Resolved). U2 también establece `AppDbContext` en la capa Infrastructure y las interfaces de servicio que las unidades superiores (U3, U4, U5) consumen.
 
 ### Artefactos que generaremos al cerrar este stage
 
@@ -42,7 +42,7 @@ Antes de las preguntas, este es el estado confirmado desde Inception:
 
 | Decisión ya tomada | Fuente |
 |-------------------|--------|
-| EF Core 8 con SQL Server LocalDB | C-03 |
+| EF Core 8 con SQL Server MonitorPedidosDb (172.16.0.41) | C-03 |
 | `Incident` es el aggregate root principal | components.md |
 | `AppDbContext` en capa Infrastructure | components.md |
 | `AlertMessage` es Owned Entity de `Incident` (OwnsOne) | components.md |

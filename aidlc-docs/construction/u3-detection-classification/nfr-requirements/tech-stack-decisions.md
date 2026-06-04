@@ -1,4 +1,4 @@
-# Tech Stack Decisions — U3 Detection & Classification
+﻿# Tech Stack Decisions — U3 Detection & Classification
 
 **Unidad:** U3 — Detection & Classification
 **Stage:** Construction → NFR Requirements
@@ -15,7 +15,7 @@ U3 no introduce nuevas tecnologías ni paquetes NuGet.
 |------|-----------|---------|--------|
 | Scheduler | `BackgroundService` + `PeriodicTimer` | .NET 8 (built-in) | U1, ADR-001 |
 | ORM | Entity Framework Core 8 | 8.x | U1, ADR-001 |
-| BD | SQL Server LocalDB | 2019+ | U1, ADR-001 |
+| BD | SQL Server MonitorPedidosDb (172.16.0.41) | 2019+ | U1, ADR-001 |
 | Logging | Serilog (File Sink) | 3.x | U1, NFR-U1-03 |
 | Web | ASP.NET Core 8 + Blazor Server | — | U1, ADR-001 |
 | Tests | xUnit + WebApplicationFactory | — | U1, NFR-U1-05 |

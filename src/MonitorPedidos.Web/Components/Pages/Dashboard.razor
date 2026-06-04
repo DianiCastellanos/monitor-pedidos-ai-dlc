@@ -165,33 +165,30 @@ else
 }
 
 <p class="text-muted small mb-1">
-    @{
-        var nextBdCheck = DateTimeOffset.UtcNow.AddSeconds(_brandCountdown).ToLocalTime();
-    }
     @if (_brandLastUpdate is not null)
     {
-        <span>Actualizado: <strong>@_brandLastUpdate.Value.ToLocalTime().ToString("hh:mm tt")</strong> &nbsp;·&nbsp; Próx. verificación: <strong>@nextBdCheck.ToString("hh:mm tt")</strong> &nbsp;·&nbsp; <span class="text-muted">Checker Salesforce: cada @BrandCheckerIntervalMinutes min</span></span>
+        <span>Últ. consulta a Salesforce: <strong>@_brandLastUpdate.Value.ToLocalTime().ToString("hh:mm tt")</strong> &nbsp;·&nbsp; Próxima consulta automática en: <strong>@FormatCountdown(_brandCountdown)</strong></span>
     }
     else if (_brandDbUnavailable)
     {
-        <span><span class="text-warning">BD no disponible</span> &nbsp;·&nbsp; Próx. verificación: <strong>@nextBdCheck.ToString("hh:mm tt")</strong> &nbsp;·&nbsp; <span class="text-muted">Checker Salesforce: cada @BrandCheckerIntervalMinutes min</span></span>
+        <span><span class="text-warning">Sin historial disponible</span> &nbsp;·&nbsp; Próxima consulta automática en: <strong>@FormatCountdown(_brandCountdown)</strong></span>
     }
     else if (_brandLoading)
     {
-        <span>Brand Monitor: iniciando...</span>
+        <span>Consultando Salesforce...</span>
     }
     else
     {
-        <span>Sin datos aún &nbsp;·&nbsp; Próx. verificación: <strong>@nextBdCheck.ToString("hh:mm tt")</strong></span>
+        <span>Sin datos aún &nbsp;·&nbsp; Próxima consulta automática en: <strong>@FormatCountdown(_brandCountdown)</strong></span>
     }
 </p>
 
 <div class="d-flex align-items-center mb-2" data-testid="brand-monitor-header">
-    <h5 class="mb-0">Brand Monitor</h5>
-    <span class="text-muted small ms-2">— pedidos pendientes por marca</span>
+    <h5 class="mb-0">Pedidos por descargar</h5>
+    <span class="text-muted small ms-2">— pendientes en Salesforce por marca</span>
     <button class="btn btn-outline-secondary btn-sm ms-auto" data-testid="btn-brand-refresh" @onclick="() => RefreshBrandAsync(true)" disabled="@(_brandLoading || _brandRefreshing)">
-        @if (_brandRefreshing) { <span class="spinner-border spinner-border-sm me-1"></span><span>Actualizando...</span> }
-        else { <span>&#8635; Actualizar</span> }
+        @if (_brandRefreshing) { <span class="spinner-border spinner-border-sm me-1"></span><span>Consultando Salesforce...</span> }
+        else { <span>&#8635; Consultar Salesforce</span> }
     </button>
 </div>
 
@@ -342,11 +339,11 @@ else
             <thead class="table-light">
                 <tr>
                     <th>Marca</th>
-                    <th class="text-center">Pendientes actuales</th>
-                    <th class="text-center">Hace 10 min</th>
-                    <th class="text-center">Cambio</th>
+                    <th class="text-center">Pendientes ahora</th>
+                    <th class="text-center">Consulta anterior</th>
+                    <th class="text-center">Variación</th>
                     <th class="text-center">Estado</th>
-                    <th>Actualizado</th>
+                    <th>Hora consulta</th>
                 </tr>
             </thead>
             <tbody>
@@ -367,7 +364,7 @@ else
                             else               { <span class="text-muted">—</span> }
                         </td>
                         <td class="text-center"><span class="badge bg-@bc">@be</span></td>
-                        <td class="text-muted small">@s.CheckedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                        <td class="text-muted small">@DateTime.SpecifyKind(s.CheckedAt, DateTimeKind.Utc).ToLocalTime().ToString("HH:mm:ss")</td>
                     </tr>
                 }
             </tbody>
@@ -552,6 +549,13 @@ else
 
         try
         {
+            // Botón manual: consulta Salesforce en vivo, guarda snapshot y resetea el timer
+            if (isManual)
+            {
+                _brandCountdown = BrandUiRefreshIntervalSeconds;
+                await BrandMonitorService.SimulateAndRefreshAsync();
+            }
+
             var newSnapshots     = await BrandMonitorService.GetCurrentSnapshotsAsync();
             _brandSnapshots      = newSnapshots;
             _brandStale          = false;
@@ -559,7 +563,7 @@ else
             _brandLiveManual     = false;
             _brandLiveCounts     = null;
             _brandLastUpdate     = newSnapshots.Count > 0
-                ? newSnapshots.Max(s => s.CheckedAt)
+                ? new DateTimeOffset(DateTime.SpecifyKind(newSnapshots.Max(s => s.CheckedAt), DateTimeKind.Utc))
                 : DateTimeOffset.UtcNow;
         }
         catch (Exception ex)
@@ -567,12 +571,10 @@ else
             _logger.LogWarning("Dashboard RefreshBrandAsync: BD no disponible — {Msg}", ex.Message);
             if (!hasData) _brandSnapshots = [];
 
-            // _brandStale solo cuando hay snapshots de BD que ahora están desactualizados
             _brandStale         = _brandSnapshots.Any();
-            // _brandDbUnavailable solo cuando no hay ninguna fuente de datos disponible
             _brandDbUnavailable = !_brandSnapshots.Any() && !(_brandLiveManual && _brandLiveCounts is not null);
 
-            // Solo si fue solicitud manual del usuario: consultar Salesforce en tiempo real
+            // Sin BD: mostrar datos en vivo de Salesforce
             if (isManual)
             {
                 _brandLiveManual = true;

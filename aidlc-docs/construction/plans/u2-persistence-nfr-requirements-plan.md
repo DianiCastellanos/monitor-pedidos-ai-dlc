@@ -1,4 +1,4 @@
-# NFR Requirements Plan — U2 Persistence & Domain
+﻿# NFR Requirements Plan — U2 Persistence & Domain
 
 **Stage:** Construction → NFR Requirements
 **Unidad:** U2 — Persistence & Domain
@@ -39,7 +39,7 @@ Los siguientes NFRs ya están determinados desde Inception o desde los artefacto
 | NFR | Estado | Decisión |
 |-----|--------|----------|
 | RNF-01 Rendimiento | Definido | Página de historial < 2s; queries paginadas |
-| RNF-02 Disponibilidad | Definido | LocalDB en mismo host; sin réplica en MVP |
+| RNF-02 Disponibilidad | Definido | MonitorPedidosDb en mismo host; sin réplica en MVP |
 | RNF-03 Consistencia | Definido | EF Core transactions en `CreateAsync` |
 | BR-INC-01..07 | Definidos | Ver `business-rules.md` de U2 |
 
@@ -63,11 +63,11 @@ Los siguientes NFRs ya están determinados desde Inception o desde los artefacto
 
 ### Pregunta 2 — Health check para la BD
 
-¿Implementamos un health check para la conectividad con SQL Server LocalDB?
+¿Implementamos un health check para la conectividad con SQL Server MonitorPedidosDb (172.16.0.41)?
 
 **A) (Recomendada) `IHealthCheck` personalizado con `context.Database.CanConnectAsync()`** — endpoint `/health` con respuesta JSON. Registrado como health check con tag `"database"` en `Program.cs`. Permite monitoreo proactivo de la BD desde la misma aplicación.
 
-**B) Sin health check para MVP** — la BD es LocalDB en el mismo host; una falla es obvia. Menos código, pero sin endpoint estándar de monitoreo que futuras herramientas puedan consumir.
+**B) Sin health check para MVP** — la BD es MonitorPedidosDb en el mismo host; una falla es obvia. Menos código, pero sin endpoint estándar de monitoreo que futuras herramientas puedan consumir.
 
 [Answer]: A — `IHealthCheck` con `/health` endpoint *(2026-05-23)*
 
@@ -77,7 +77,7 @@ Los siguientes NFRs ya están determinados desde Inception o desde los artefacto
 
 ¿Qué nivel de cobertura automatizada definimos para U2?
 
-**A) (Recomendada) Unit tests para lógica de dominio + integration tests para `IIncidentService`** — unit tests: transiciones de estado (`Open→Acknowledged`, `Acknowledged→Resolved`, transición inválida → excepción), `DetermineStatus` de `BrandSnapshot`. Integration tests para `IIncidentService` con BD real (LocalDB en test). Total ~6 tests con xUnit y Moq.
+**A) (Recomendada) Unit tests para lógica de dominio + integration tests para `IIncidentService`** — unit tests: transiciones de estado (`Open→Acknowledged`, `Acknowledged→Resolved`, transición inválida → excepción), `DetermineStatus` de `BrandSnapshot`. Integration tests para `IIncidentService` con BD real (MonitorPedidosDb en test). Total ~6 tests con xUnit y Moq.
 
 **B) Solo prueba manual** — sin tests automáticos para U2. No recomendado: la lógica de transiciones de estado es crítica y el riesgo de regresión es alto.
 

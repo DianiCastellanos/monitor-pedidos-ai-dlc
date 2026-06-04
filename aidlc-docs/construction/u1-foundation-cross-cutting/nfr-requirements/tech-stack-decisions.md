@@ -1,4 +1,4 @@
-# Tech Stack Decisions — U1 Foundation & Cross-Cutting
+﻿# Tech Stack Decisions — U1 Foundation & Cross-Cutting
 
 **Unidad:** U1 — Foundation & Cross-Cutting
 **Stage:** Construction → NFR Requirements
@@ -19,7 +19,7 @@ Todas las decisiones de stack para U1 vienen de Inception (ADR-001) o fueron con
 | Real-time | SignalR (integrado en ASP.NET Core) | — | ADR-001 |
 | Auth | `Microsoft.AspNetCore.Authentication.Cookies` | integrado .NET 8 | NFR-U1-02; sin Identity library |
 | ORM | Entity Framework Core 8 | 8.x | ADR-001 |
-| BD desarrollo | SQL Server LocalDB | — | ADR-001 |
+| BD desarrollo | SQL Server MonitorPedidosDb (172.16.0.41) | — | ADR-001 |
 | Logging | Serilog | 3.x | RNF-08, NFR-U1-03 |
 | Serilog sink | `Serilog.Sinks.File` | 5.x | NFR-U1-03 |
 | Security headers | Middleware personalizado | — | NFR-U1-04 |

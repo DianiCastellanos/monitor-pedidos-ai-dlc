@@ -1,4 +1,4 @@
-# Tech Stack Decisions — U5 Rules Management
+﻿# Tech Stack Decisions — U5 Rules Management
 
 **Unidad:** U5 — Rules Management
 **Stage:** Construction → NFR Requirements
@@ -63,7 +63,7 @@ public class RuleManagementServiceIntegrationTests : IDisposable
 | ASP.NET Core 8 | 8.x | Middleware de autorización para páginas de reglas |
 | Blazor Server | 8.x | RulesPage, RuleEditPage, RuleHistoryPage |
 | EF Core 8 | 8.x | Rule, RuleHistoryEntry — tablas `rules` y `rule_history` |
-| SQL Server LocalDB | 2019+ | BD principal de desarrollo; migrations `AddRulesTables` |
+| SQL Server MonitorPedidosDb (172.16.0.41) | 2019+ | BD principal de desarrollo; migrations `AddRulesTables` |
 | Serilog | 3.x | Log de operaciones CRUD (nivel Information) |
 | Moq | 4.x | Mock de `IRuleRepository` e `IRuleHistoryRepository` en unit tests de validación |
 | xUnit | 2.x | Framework de test para unit e integration tests |

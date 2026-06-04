@@ -1,4 +1,4 @@
-# Business Rules — U1 Foundation & Cross-Cutting
+﻿# Business Rules — U1 Foundation & Cross-Cutting
 
 **Unidad:** U1 — Foundation & Cross-Cutting
 **Stage:** Construction → Functional Design
@@ -73,7 +73,7 @@
 | BR-EX-01 | Toda llamada a recursos externos (BD, HTTP) DEBE estar envuelta en try/catch. Un fallo no manejado no puede escapar al pipeline sin ser capturado por `GlobalExceptionHandler`. | RNF-15, SECURITY-15 | Code review — sin llamadas a BD/HTTP sin try/catch |
 | BR-EX-02 | `GlobalExceptionHandler` DEBE retornar un mensaje generico al cliente: **nunca** el tipo de excepcion, el stack trace, ni rutas internas del servidor. | RNF-12, RNF-15, SECURITY-09 | Test: forzar excepcion -> respuesta al cliente sin detalles tecnicos |
 | BR-EX-03 | Los recursos (conexiones a BD, streams, clientes HTTP) DEBEN liberarse con `using` o `try-finally`. Sin resource leaks. | RNF-15 | Code review |
-| BR-EX-04 | En caso de fallo de la BD en startup (durante migracion), la aplicacion DEBE fallar con log detallado y mensaje claro. No puede arrancar en estado inconsistente. | RNF-15 | Test: apagar LocalDB -> app falla con log claro |
+| BR-EX-04 | En caso de fallo de la BD en startup (durante migracion), la aplicacion DEBE fallar con log detallado y mensaje claro. No puede arrancar en estado inconsistente. | RNF-15 | Test: apagar MonitorPedidosDb -> app falla con log claro |
 
 ---
 

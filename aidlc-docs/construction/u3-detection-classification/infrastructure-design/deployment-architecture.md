@@ -1,4 +1,4 @@
-# Deployment Architecture — U3 Detection & Classification
+﻿# Deployment Architecture — U3 Detection & Classification
 
 **Unidad:** U3 — Detection & Classification
 **Stage:** Construction → Infrastructure Design
@@ -65,7 +65,7 @@ graph TB
             LOGS[("logs/\nmonitor-pedidos-YYYYMMDD.log")]
         end
 
-        subgraph DB["SQL Server LocalDB — MonitorPedidosDb"]
+        subgraph DB["SQL Server MonitorPedidosDb (172.16.0.41) — MonitorPedidosDb"]
             T_INC[("tabla: incidents\nIX_incidents_Module_Open")]
             T_SIM[("tablas: simulated_orders\nsimulated_job_statuses\ncreadas por U7")]
         end

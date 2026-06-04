@@ -1,4 +1,4 @@
-# Runbook de Operaciones — MonitorPedidos AI
+﻿# Runbook de Operaciones — MonitorPedidos AI
 
 ## 1. Arquitectura
 
@@ -12,7 +12,7 @@
 ## 2. Prerrequisitos
 
 - .NET 8 SDK
-- SQL Server (LocalDB para dev, SQL Server Express/Standard para prod)
+- SQL Server (MonitorPedidosDb para dev, SQL Server Express/Standard para prod)
 - Node.js 18+ (solo para tests Playwright)
 
 ## 3. Build & Deploy

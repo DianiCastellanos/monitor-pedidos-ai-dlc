@@ -5,7 +5,7 @@
 | Herramienta | Versión mínima | Verificar |
 |---|---|---|
 | .NET SDK | 8.0 | `dotnet --version` |
-| SQL Server | LocalDB / Express / Developer | `sqlcmd -?` |
+| SQL Server | MonitorPedidosDb / Express / Developer | `sqlcmd -?` |
 | EF Core Tools | 8.0 | `dotnet ef --version` |
 
 ### Instalar EF Core Tools (si no está instalado)

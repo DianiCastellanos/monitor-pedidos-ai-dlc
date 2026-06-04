@@ -1,4 +1,4 @@
-# Milestones — MonitorPedidos AI
+﻿# Milestones — MonitorPedidos AI
 
 ## MS1: Inception Complete
 - **Fecha**: 2026-05-22
@@ -21,7 +21,7 @@
 - **Fecha**: 2026-05-30
 - **Estado**: ✅ COMPLETADO
 - **Descripción**: Migración de PostgreSQL a SQL Server + dual DB (AppDb + ProductionDb). M2 configurable por reglas con canales y mínimo de pedidos.
-- **Entregables**: SQL Server LocalDB, `ProductionOrderRepository`, `RuleCondition.Channels`, seed `MakeRulesConfigurable`.
+- **Entregables**: SQL Server MonitorPedidosDb (172.16.0.41), `ProductionOrderRepository`, `RuleCondition.Channels`, seed `MakeRulesConfigurable`.
 
 ---
 

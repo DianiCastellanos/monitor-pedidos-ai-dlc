@@ -1,4 +1,4 @@
-# Requirements Verification Questions — MonitorPedidos AI
+﻿# Requirements Verification Questions — MonitorPedidos AI
 
 > ⚠️ **Nota de revisión de contexto (2026-05-20T09:55):** después de responder este cuestionario, el owner solicitó eliminar **toda exposición pública del sistema**. Las preguntas y respuestas se conservan como artefacto histórico. El contexto efectivo es: **localhost o red interna del equipo, sin ngrok, sin URL pública, sin acceso desde internet**. Esto afecta principalmente la *justificación* de las preguntas 5, 11 y 12 (las decisiones se mantienen, pero el motivo "demo pública via ngrok" deja de aplicar). Ver `requirements.md` v1.1, sección C-02 y nota de contexto en §3.7. Trazabilidad completa en `audit.md`.
 
@@ -95,7 +95,7 @@ D) Otro (describir después de `[Answer]:`)
 
 La Decisión #5 dice "30-90 días". ¿Qué retención fija el MVP?
 
-A) **(Recomendada)** **90 días** desde el día 0. Permite construir baseline robusto para futuras reglas dinámicas (v2 anomaly detection), y 90 días en SQL Server LocalDB es manejable (≈10–50 MB con la cadencia 5–10 min).
+A) **(Recomendada)** **90 días** desde el día 0. Permite construir baseline robusto para futuras reglas dinámicas (v2 anomaly detection), y 90 días en SQL Server MonitorPedidosDb (172.16.0.41) es manejable (≈10–50 MB con la cadencia 5–10 min).
 B) 30 días. Más liviano pero limita análisis de tendencia mensual/trimestral.
 C) Sin límite en MVP, definir en post-MVP. Permite máxima información pero podría crecer descontroladamente.
 D) Otro (describir después de `[Answer]:`)
@@ -160,7 +160,7 @@ D) Otro (describir después de `[Answer]:`)
 
 La Estrategia de despliegue dice "localhost + datos simulados". ¿Cómo se generarán esos datos?
 
-A) **(Recomendada)** **Tabla `simulated_orders`** en SQL Server LocalDB poblada por un script SQL inicial + un job .NET que inserta pedidos cada 5–10 min con probabilidad configurable de fallo. Realista, controlable, reseteable, permite ejecutar los 6 escenarios de red-teaming.
+A) **(Recomendada)** **Tabla `simulated_orders`** en SQL Server MonitorPedidosDb (172.16.0.41) poblada por un script SQL inicial + un job .NET que inserta pedidos cada 5–10 min con probabilidad configurable de fallo. Realista, controlable, reseteable, permite ejecutar los 6 escenarios de red-teaming.
 B) **Mocks HTTP** de Salesforce/Multivende con WireMock o similar. Más fiel a producción pero agrega complejidad de setup.
 C) Datos estáticos (JSON/CSV cargado una vez). Más simple pero no permite simular escenarios dinámicos (falla intermitente, latencia variable).
 D) Otro (describir después de `[Answer]:`)

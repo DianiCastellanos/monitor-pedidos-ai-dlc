@@ -1,4 +1,4 @@
-# NFR Requirements — U3 Detection & Classification
+﻿# NFR Requirements — U3 Detection & Classification
 
 **Unidad:** U3 — Detection & Classification
 **Stage:** Construction → NFR Requirements
@@ -90,7 +90,7 @@ public void Render_BdCritical_AllSixFieldsNonEmpty()
 
 ---
 
-### NFR-U3-03 — Tests de integración con LocalDB para checkers con BD
+### NFR-U3-03 — Tests de integración con MonitorPedidosDb para checkers con BD
 
 **Decisión:** P3 = A
 
@@ -98,10 +98,10 @@ Los checkers que dependen de BD o de repositorios con tabla real se testean de f
 
 | Checker | Tipo de test | Razón |
 |---------|-------------|-------|
-| `DbHealthChecker` (M4) | Integration test con LocalDB real | Necesita `SELECT 1` real — un mock no valida la conectividad |
+| `DbHealthChecker` (M4) | Integration test con MonitorPedidosDb real | Necesita `SELECT 1` real — un mock no valida la conectividad |
 | `DbOrderChecker` (M2) | Unit test con mock de `IOrderSource` | `IOrderSource` es la abstracción; el comportamiento del checker no depende de SQL |
 | `JobsChecker` (M11) | Unit test con mock de `IJobStatusSource` | Misma razón que M2 |
-| `MonitoringService` | Integration test con LocalDB + mocks de `INotificationService` | Valida el flujo completo: checker → incident → notification stub |
+| `MonitoringService` | Integration test con MonitorPedidosDb + mocks de `INotificationService` | Valida el flujo completo: checker → incident → notification stub |
 
 ```csharp
 // T-U3-03 — DbHealthChecker con BD real
@@ -119,7 +119,7 @@ public async Task DbHealthChecker_LocalDbRunning_ReturnsOk()
 |----------|-------|
 | **Tests planificados** | T-U3-03 (DbHealthChecker), T-U3-04 (DbOrderChecker mock), T-U3-05 (MonitoringService flujo completo) |
 | **Infraestructura** | Reutiliza `TestWebAppFactory` de U1/U2 para tests con BD |
-| **Cumple** | NFR-U2-04 (patrón LocalDB real — extendido a U3) |
+| **Cumple** | NFR-U2-04 (patrón MonitorPedidosDb real — extendido a U3) |
 
 ---
 

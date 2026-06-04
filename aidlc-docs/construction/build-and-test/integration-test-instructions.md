@@ -1,4 +1,4 @@
-# Integration Test Instructions — MonitorPedidos
+﻿# Integration Test Instructions — MonitorPedidos
 
 **Fecha**: 2026-05-24
 **Proyecto**: MonitorPedidos — Manufacturas Eliot
@@ -15,7 +15,7 @@ Las pruebas de integración de MonitorPedidos verifican la **interacción entre 
 
 **Lo que cubren los integration tests**:
 - Pipeline HTTP completo (middleware, autenticación, autorización, routing)
-- Queries EF Core contra SQL Server LocalDB real
+- Queries EF Core contra SQL Server MonitorPedidosDb (172.16.0.41) real
 - Transiciones de estado persisted en base de datos
 - Behavior del Identity framework con cookies reales
 - Flujo de datos desde servicio de dominio hasta repositorio hasta BD
@@ -50,7 +50,7 @@ public class MonitorPedidosWebApplicationFactory : WebApplicationFactory<Program
 
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
-                    "Server=(localdb)\\MSSQLLocalDB;Database=MonitorPedidosTestDb;Trusted_Connection=True;"));
+                    "Server=(localdb)\\MSSQLMonitorPedidosDb;Database=MonitorPedidosTestDb;Trusted_Connection=True;"));
 
             // Deshabilitar el scheduler de background para no interferir con tests
             services.AddSingleton<IHostedService, NoopMonitoringService>();
@@ -206,10 +206,10 @@ Migration AddBrandSnapshots aplicada (seed de 4 reglas)
 ## §4 Base de Datos de Test
 
 **Nombre**: `MonitorPedidosTestDb`
-**Server**: `(localdb)\MSSQLLocalDB`
+**Server**: `(localdb)\MSSQLMonitorPedidosDb`
 **Connection String de test**:
 ```
-Server=(localdb)\MSSQLLocalDB;Database=MonitorPedidosTestDb;Trusted_Connection=True;MultipleActiveResultSets=true
+Server=(localdb)\MSSQLMonitorPedidosDb;Database=MonitorPedidosTestDb;Trusted_Connection=True;MultipleActiveResultSets=true
 ```
 
 **Separación de la BD de producción**:
@@ -221,7 +221,7 @@ Server=(localdb)\MSSQLLocalDB;Database=MonitorPedidosTestDb;Trusted_Connection=T
 ```bash
 # La WebApplicationFactory aplica las migrations automáticamente
 # O hacerlo manualmente:
-dotnet ef database update --project MonitorPedidos.Web --connection "Server=(localdb)\\MSSQLLocalDB;Database=MonitorPedidosTestDb;Trusted_Connection=True;"
+dotnet ef database update --project MonitorPedidos.Web --connection "Server=(localdb)\\MSSQLMonitorPedidosDb;Database=MonitorPedidosTestDb;Trusted_Connection=True;"
 ```
 
 ---
@@ -238,9 +238,9 @@ Antes de ejecutar los integration tests, verificar:
    - 4 reglas: Patprimo, SevenSeven, Atmos, Ostu
    - La migration `AddBrandSnapshots` las inserta automáticamente
 
-3. **LocalDB corriendo**:
+3. **MonitorPedidosDb corriendo**:
    ```bash
-   sqllocaldb start MSSQLLocalDB
+   sqllocaldb start MSSQLMonitorPedidosDb
    ```
 
 4. **Usuario admin de test** disponible:

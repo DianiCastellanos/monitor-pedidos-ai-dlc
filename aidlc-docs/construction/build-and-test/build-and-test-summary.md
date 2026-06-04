@@ -1,4 +1,4 @@
-# Build & Test Summary — MonitorPedidos
+﻿# Build & Test Summary — MonitorPedidos
 
 **Fecha**: 2026-05-24
 **Proyecto**: MonitorPedidos — Manufacturas Eliot
@@ -41,7 +41,7 @@ El orden correcto para dejar el sistema funcionando desde cero:
 
 ```
 1. Prerrequisitos
-   └── .NET 8 SDK + SQL Server LocalDB + EF CLI instalados
+   └── .NET 8 SDK + SQL Server MonitorPedidosDb (172.16.0.41) + EF CLI instalados
 
 2. Clonar repositorio
    └── git clone + dotnet restore MonitorPedidos.sln

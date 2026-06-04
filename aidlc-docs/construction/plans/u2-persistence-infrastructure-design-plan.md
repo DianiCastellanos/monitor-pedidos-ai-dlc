@@ -1,4 +1,4 @@
-# Infrastructure Design Plan — U2 Persistence & Domain
+﻿# Infrastructure Design Plan — U2 Persistence & Domain
 
 **Stage:** Construction → Infrastructure Design
 **Unidad:** U2 — Persistence & Domain
@@ -6,7 +6,7 @@
 **Fecha:** 2026-05-23
 **Fuentes:**
 - U2 `nfr-design/` (2 artefactos aprobados)
-- U1 `infrastructure-design/` (contexto LocalDB)
+- U1 `infrastructure-design/` (contexto MonitorPedidosDb)
 
 ---
 
@@ -38,7 +38,7 @@ Los siguientes aspectos ya están determinados desde U1 y desde los artefactos d
 
 | Aspecto | Decisión |
 |---------|----------|
-| Motor de BD | SQL Server LocalDB — misma decisión que U1 |
+| Motor de BD | SQL Server MonitorPedidosDb (172.16.0.41) — misma decisión que U1 |
 | Migrations | Manual con CLI (`dotnet ef database update`) |
 | Sin exposición pública | Restricción explícita del owner |
 

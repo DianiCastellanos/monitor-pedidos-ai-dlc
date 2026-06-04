@@ -1,4 +1,4 @@
-# Business Logic Model — U7 Simulation & Red-Teaming
+﻿# Business Logic Model — U7 Simulation & Red-Teaming
 
 **Unidad:** U7 — Simulation & Red-Teaming
 **Stage:** Construction → Functional Design
@@ -115,7 +115,7 @@ MonitoringSchedulerService Timer1 (5 min)
 ## Flujo 5 — Escenario RT3 (SQL Server apagado)
 
 ```
-[Técnico detiene el servicio SQL Server LocalDB en Windows]
+[Técnico detiene el servicio SQL Server MonitorPedidosDb (172.16.0.41) en Windows]
     |
     MonitoringSchedulerService Timer1 tick
         DbHealthChecker.ExecuteAsync(ct)

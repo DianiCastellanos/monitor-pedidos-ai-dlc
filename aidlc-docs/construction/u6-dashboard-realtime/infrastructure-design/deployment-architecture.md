@@ -1,4 +1,4 @@
-# Deployment Architecture — U6 Dashboard & Real-Time
+﻿# Deployment Architecture — U6 Dashboard & Real-Time
 
 **Unidad:** U6 — Dashboard & Real-Time
 **Stage:** Construction → Infrastructure Design
@@ -97,7 +97,7 @@ graph TD
 
         end
 
-        subgraph DB["SQL Server LocalDB"]
+        subgraph DB["SQL Server MonitorPedidosDb (172.16.0.41)"]
             INC["incidents\n+ retry_metadata JSON"]
             USR["users"]
             JOB["jobs"]

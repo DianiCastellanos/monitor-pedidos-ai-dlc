@@ -1,4 +1,4 @@
-# Deployment Architecture — U1 Foundation & Cross-Cutting
+﻿# Deployment Architecture — U1 Foundation & Cross-Cutting
 
 **Unidad:** U1 — Foundation & Cross-Cutting
 **Stage:** Construction → Infrastructure Design
@@ -41,7 +41,7 @@ graph TB
             LOGS[("logs/\nmonitor-pedidos-YYYYMMDD.log")]
         end
 
-        LOCALDB[("SQL Server LocalDB\nMonitorPedidosDb.mdf")]
+        LOCALDB[("SQL Server MonitorPedidosDb (172.16.0.41)\nMonitorPedidosDb.mdf")]
     end
 
     NAV -->|"HTTPS :7001 / HTTP :5001"| MW1
@@ -71,13 +71,13 @@ Estos componentes deben estar instalados en la máquina que ejecuta el sistema:
 | Componente | Versión mínima | Cómo verificar |
 |------------|---------------|----------------|
 | .NET SDK | 8.x | `dotnet --version` |
-| SQL Server LocalDB | 2019+ | `sqllocaldb info` |
+| SQL Server MonitorPedidosDb (172.16.0.41) | 2019+ | `sqllocaldb info` |
 | dotnet dev-certs | (incluido en SDK) | `dotnet dev-certs https --check` |
 
-**SQL Server LocalDB** se instala con:
+**SQL Server MonitorPedidosDb (172.16.0.41)** se instala con:
 - Visual Studio (cualquier edición, incluyendo Community)
 - SQL Server Express
-- Instalador standalone: [SQL Server LocalDB](https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/sql-server-express-localdb)
+- Instalador standalone: [SQL Server MonitorPedidosDb (172.16.0.41)](https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/sql-server-express-localdb)
 
 ---
 

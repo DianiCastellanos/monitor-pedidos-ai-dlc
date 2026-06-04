@@ -1,4 +1,4 @@
-# ADR-001 — Monolito Modular con Vertical Slice Architecture
+﻿# ADR-001 — Monolito Modular con Vertical Slice Architecture
 
 ## Metadatos
 
@@ -29,7 +29,7 @@ Las restricciones concretas al momento de la decisión:
 | **Despliegue** | Localhost o red interna del equipo; **sin exposición a internet** durante el MVP |
 | **Equipo de desarrollo** | Pequeño; sin overhead de DevOps distribuido |
 | **Módulos lógicos** | 11 módulos (M1–M11, M5 integrado en M6) ya definidos en el PRD v2.3 |
-| **Stack decidido** | .NET 8 + ASP.NET Core + SQL Server LocalDB + Blazor Server + SignalR |
+| **Stack decidido** | .NET 8 + ASP.NET Core + SQL Server MonitorPedidosDb (172.16.0.41) + Blazor Server + SignalR |
 | **Naturaleza del sistema** | Proceso único; los módulos se comunican internamente, no entre procesos |
 
 El sistema requería una decisión sobre **dos aspectos inseparables**:
@@ -171,7 +171,7 @@ Estas reglas son verificables en code review y deben cumplirse en Construction:
 - **Escalado horizontal limitado**: un monolito escala verticalmente (más CPU/RAM en la misma máquina). Para 5 usuarios esto no es un problema, pero si el sistema crece a 50+ usuarios concurrentes el monolito puede ser un cuello de botella.
 - **Riesgo de acoplamiento accidental**: sin enforcement automático (analizadores de arquitectura), los desarrolladores pueden crear dependencias directas entre Features violando las reglas R1–R6. Mitigación: code review estricto en Construction.
 - **Despliegue todo-o-nada**: no se puede desplegar M6 (reglas) sin desplegar M8 (dashboard). En microservicios sería posible. Para MVP esto es aceptable.
-- **Base de datos compartida**: todos los módulos acceden al mismo SQL Server LocalDB. Si dos módulos necesitan schemas incompatibles en el futuro, el esquema compartido puede convertirse en deuda técnica. Mitigación: namespacing de tablas por módulo desde el inicio.
+- **Base de datos compartida**: todos los módulos acceden al mismo SQL Server MonitorPedidosDb (172.16.0.41). Si dos módulos necesitan schemas incompatibles en el futuro, el esquema compartido puede convertirse en deuda técnica. Mitigación: namespacing de tablas por módulo desde el inicio.
 
 ### Riesgos
 

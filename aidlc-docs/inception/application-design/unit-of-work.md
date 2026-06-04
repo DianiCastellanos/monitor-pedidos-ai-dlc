@@ -1,4 +1,4 @@
-# Unit of Work — MonitorPedidos AI
+﻿# Unit of Work — MonitorPedidos AI
 
 **Fecha:** 2026-05-22
 **Versión:** 1.0
@@ -57,7 +57,7 @@ Establecer la base del sistema: solución, dependencias, selección simple de id
 ## Entry criteria
 
 - ✅ Inception completa hasta Application Design aprobado.
-- ✅ .NET 8 SDK + SQL Server LocalDB instalados.
+- ✅ .NET 8 SDK + SQL Server MonitorPedidosDb (172.16.0.41) instalados.
 - ✅ .NET 8 SDK instalado (no se requieren User Secrets para credenciales — identidad sin passwords).
 
 ## Exit criteria
@@ -73,7 +73,7 @@ Establecer la base del sistema: solución, dependencias, selección simple de id
 
 ## Sprint sugerido
 
-**Sprint 1 (semana 1).** El PRD §13 lo asigna a Sprint 1 — "Setup .NET 8 + SQL Server LocalDB".
+**Sprint 1 (semana 1).** El PRD §13 lo asigna a Sprint 1 — "Setup .NET 8 + SQL Server MonitorPedidosDb (172.16.0.41)".
 
 ## Notas técnicas para Construction
 

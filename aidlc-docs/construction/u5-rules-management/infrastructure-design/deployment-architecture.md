@@ -1,4 +1,4 @@
-# Deployment Architecture — U5 Rules Management
+﻿# Deployment Architecture — U5 Rules Management
 
 **Unidad:** U5 — Rules Management
 **Stage:** Construction → Infrastructure Design
@@ -76,7 +76,7 @@ graph TD
 
         end
 
-        subgraph DB["SQL Server LocalDB"]
+        subgraph DB["SQL Server MonitorPedidosDb (172.16.0.41)"]
             INC["incidents\n+ retry_metadata nullable JSON"]
             USR["users"]
             JOB["jobs"]

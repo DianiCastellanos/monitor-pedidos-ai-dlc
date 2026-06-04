@@ -67,7 +67,7 @@
                     </div>
                     <div style="color:#6b7280; font-size:0.78rem; margin-top:0.1rem;">@prevLabel</div>
                     <div style="color:#6b7280; font-size:0.75rem; margin-top:0.3rem;">
-                        @s.CheckedAt.ToLocalTime().ToString("HH:mm")
+                        @DateTime.SpecifyKind(s.CheckedAt, DateTimeKind.Utc).ToLocalTime().ToString("HH:mm")
                     </div>
                 </div>
             }

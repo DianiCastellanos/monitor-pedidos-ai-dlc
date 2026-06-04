@@ -1,4 +1,4 @@
-# Deployment Architecture — U2 Persistence & Incidents
+﻿# Deployment Architecture — U2 Persistence & Incidents
 
 **Unidad:** U2 — Persistence & Incidents
 **Stage:** Construction → Infrastructure Design
@@ -51,7 +51,7 @@ graph TB
             LOGS[("logs/\nmonitor-pedidos-YYYYMMDD.log")]
         end
 
-        subgraph DB["SQL Server LocalDB"]
+        subgraph DB["SQL Server MonitorPedidosDb (172.16.0.41)"]
             SCHEMA1[("MonitorPedidosDb\ntablas U1: asp_net_*")]
             SCHEMA2[("MonitorPedidosDb\ntabla U2: incidents\nIX_incidents_Module_Open")]
         end
@@ -122,7 +122,7 @@ dotnet ef migrations add AddIncidentSchema --project src/MonitorPedidos.Web
 dotnet ef database update --project src/MonitorPedidos.Web
 ```
 
-Lo que crea esta migration en LocalDB:
+Lo que crea esta migration en MonitorPedidosDb:
 
 | Objeto | Tipo |
 |--------|------|

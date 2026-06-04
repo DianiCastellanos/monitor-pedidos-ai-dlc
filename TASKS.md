@@ -1,4 +1,4 @@
-# MonitorPedidos AI — Tareas de Desarrollo
+﻿# MonitorPedidos AI — Tareas de Desarrollo
 
 **Proyecto:** MonitorPedidos AI · Manufacturas Eliot  
 **Owner:** Diana Castellanos  
@@ -16,7 +16,7 @@
 
 - [ ] **U1-01 — Crear la solución completa del proyecto**  
   Solución `.sln` con proyectos `Domain`, `Infrastructure`, `Web` (Blazor Server ASP.NET Core 8).  
-  Instalar dependencias (EF Core 8, Serilog, Polly v8, SignalR). Configurar SQL Server LocalDB y User Secrets para credenciales.  
+  Instalar dependencias (EF Core 8, Serilog, Polly v8, SignalR). Configurar SQL Server MonitorPedidosDb (172.16.0.41) y User Secrets para credenciales.  
   _Referencia: `u1/.../tech-stack-decisions.md` + `u1/.../infrastructure-design.md`_
 
 - [ ] **U1-02 — Implementar selección de identidad sin contraseña**  

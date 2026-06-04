@@ -1,4 +1,4 @@
-# Requirements — MonitorPedidos AI
+﻿# Requirements — MonitorPedidos AI
 
 **Proyecto:** MonitorPedidos AI
 **Empresa:** Manufacturas Eliot
@@ -26,7 +26,7 @@
 |----------|-------|
 | User Request | "Usando AI-DLC, construiremos MonitorPedidos AI: detector proactivo de fallas en la descarga de pedidos (Salesforce, Multivende → SQL Server). 25h/mes manuales → <10h/mes con alertas explicables y dashboard de uso interno (localhost / red interna del equipo, sin exposición pública)." *(actualizado v1.1: se eliminó la mención original a demo vía ngrok por solicitud explícita del owner — el sistema NO se expone a internet)* |
 | Request Type | **New Project** (Greenfield) |
-| Scope Estimate | **System-wide** — 11 módulos lógicos (M1–M11), 1 dashboard ASP.NET Core de uso interno (localhost o red interna del equipo), 1 base de datos SQL Server LocalDB, 2 integraciones externas simuladas (Salesforce, Multivende) |
+| Scope Estimate | **System-wide** — 11 módulos lógicos (M1–M11), 1 dashboard ASP.NET Core de uso interno (localhost o red interna del equipo), 1 base de datos SQL Server MonitorPedidosDb (172.16.0.41), 2 integraciones externas simuladas (Salesforce, Multivende) |
 | Complexity Estimate | **Moderate-High** — múltiples integraciones, restricciones de seguridad activas, datos sensibles, restricciones temporales (4 semanas), múltiples stakeholders con expectativas distintas |
 | Depth seleccionada | **Standard** — el PRD v2.1 cubre la mayoría de áreas; este documento formaliza y completa los gaps identificados en el cuestionario de verificación |
 
@@ -162,7 +162,7 @@
 
 | ID | Requerimiento | SECURITY rule | Aplicabilidad MVP |
 |----|---------------|---------------|--------------------|
-| RNF-06 | Cifrado at-rest de SQL Server LocalDB (TDE habilitado o cifrado de archivo del usuario) y conexión cifrada (TLS) o canal local seguro al motor de BD. | SECURITY-01 | **Aplica** — la BD almacena tokens (referenciados), incidentes, historial de reglas y datos simulados. Sin credenciales de usuario (modelo de selección simple sin passwords). |
+| RNF-06 | Cifrado at-rest de SQL Server MonitorPedidosDb (172.16.0.41) (TDE habilitado o cifrado de archivo del usuario) y conexión cifrada (TLS) o canal local seguro al motor de BD. | SECURITY-01 | **Aplica** — la BD almacena tokens (referenciados), incidentes, historial de reglas y datos simulados. Sin credenciales de usuario (modelo de selección simple sin passwords). |
 | RNF-07 | Modalidad de transporte del dashboard: **(a)** HTTP en `localhost` (loopback) es aceptable cuando la app corre en la máquina del usuario; **(b)** cuando el dashboard se sirva sobre la red interna del equipo (otros dispositivos accediendo al host), DEBE usar HTTPS con certificado de desarrollo de ASP.NET Core (`dotnet dev-certs https`) o certificado interno. **No** se expone a internet. | SECURITY-01 (parcial) | Aplica solo cuando hay acceso por red interna. |
 | RNF-08 | Logging estructurado centralizado con: timestamp, request_id, log_level, mensaje. **Prohibido** loggear contraseñas, tokens o PII. | SECURITY-03 / SECURITY-14 | Aplica. Implementación con Serilog + sink local (archivo rotado) en MVP; sink remoto post-MVP. |
 | RNF-09 | El dashboard ASP.NET Core DEBE emitir los headers `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`. **`Strict-Transport-Security`** se emite **solo** cuando se sirve por HTTPS interno (escenario (b) de RNF-07), con `max-age=31536000; includeSubDomains`. | SECURITY-04 | Aplica. |
@@ -249,7 +249,7 @@ Cada escenario es un criterio de aceptación bloqueante para el cierre del MVP:
 |----|-------------|--------|
 | C-01 | El MVP DEBE entregarse en **4 semanas** (4 sprints). | PRD §13 |
 | C-02 | El MVP corre **exclusivamente en localhost o red interna del equipo**, sin exposición pública a internet. No se utiliza ngrok, túneles ni servicios de exposición externa. La demo se ejecuta dentro del entorno local del owner o de la red de la empresa. Sin nube ni infraestructura corporativa adicional durante el MVP. | Revisión de contexto 2026-05-20 / Decisión #8 |
-| C-03 | Stack tecnológico: **.NET 8 (ASP.NET Core) + SQL Server LocalDB**. (El stack se mantiene como decisión por defecto del PRD; podrá reconfirmarse en NFR Requirements de Construction). | PRD §13 Sprint 1 |
+| C-03 | Stack tecnológico: **.NET 8 (ASP.NET Core) + SQL Server MonitorPedidosDb (172.16.0.41)**. (El stack se mantiene como decisión por defecto del PRD; podrá reconfirmarse en NFR Requirements de Construction). | PRD §13 Sprint 1 |
 | C-04 | Solo lectura sobre Salesforce y Multivende. El sistema NUNCA escribe sobre pedidos ni modifica estados en APIs origen. | P2 |
 | C-05 | Datos sensibles NO salen del entorno local. Dashboard cloud (futuro) requeriría autorización explícita y operaría sin payloads. | P3 |
 | C-06 | Datos del MVP son **simulados**: tabla `simulated_orders` poblada por script SQL inicial + job .NET que inserta pedidos cada 5–10 min con probabilidad configurable de fallo (debe permitir ejecutar los 6 escenarios de red-teaming). | Pregunta 12 |
@@ -268,7 +268,7 @@ Cada escenario es un criterio de aceptación bloqueante para el cierre del MVP:
 | A-03 | El sponsor (Alex Cárdenas) refuerza la adopción durante la transición (mitigación R2). |
 | A-04 | La frecuencia de polling (5/10 min) no excede los rate-limits de Salesforce/Multivende; si lo hace, se ajusta backoff (R6) sin replantear el diseño. |
 | A-05 | El navegador objetivo (Chrome/Edge modernos) soporta Notification API; si está bloqueada, se aplica fallback (R7). |
-| A-06 | LocalDB es suficiente para 90 días de historial con cadencia 5–10 min (~10–50 MB estimado). |
+| A-06 | MonitorPedidosDb es suficiente para 90 días de historial con cadencia 5–10 min (~10–50 MB estimado). |
 
 ---
 
@@ -277,7 +277,7 @@ Cada escenario es un criterio de aceptación bloqueante para el cierre del MVP:
 | ID | Dependencia | Tipo |
 |----|-------------|------|
 | Dep-01 | .NET 8 SDK instalado en el equipo de desarrollo y de demo. | Técnica |
-| Dep-02 | SQL Server LocalDB instalado (típicamente vía SQL Server Express / Visual Studio). | Técnica |
+| Dep-02 | SQL Server MonitorPedidosDb (172.16.0.41) instalado (típicamente vía SQL Server Express / Visual Studio). | Técnica |
 | Dep-03 | Certificado de desarrollo HTTPS de ASP.NET Core (`dotnet dev-certs https --trust`) en cada equipo desde el que se acceda al dashboard por red interna. Solo aplica al escenario (b) de RNF-07. | Técnica |
 | Dep-04 | Failbook inicial (5–7 casos) elaborado por responsable técnico antes del Sprint 2 (para alimentar las reglas iniciales). | Producto |
 | Dep-05 | TBDs activos del PRD (TBD-D4 onboarding, TBD-S3-org datos organizacionales, TBD-S3-verbatims) — **diferidos a Sprint 1**, no bloquean Inception. | Producto (Pregunta 13) |

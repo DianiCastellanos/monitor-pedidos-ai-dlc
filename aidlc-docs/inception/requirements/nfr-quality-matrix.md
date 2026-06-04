@@ -1,4 +1,4 @@
-# Matriz de Atributos de Calidad (NFR) — MonitorPedidos AI
+﻿# Matriz de Atributos de Calidad (NFR) — MonitorPedidos AI
 
 **Versión:** 1.1
 **Fecha:** 2026-05-23
@@ -43,7 +43,7 @@ Seis atributos identificados. Los dos marcados como **CRÍTICO** son bloqueantes
 
 | ID NFR | Descripción | Sub-atributo | Métrica Objetivo | Prioridad | Verificación | Unidades | Regla SECURITY |
 |--------|-------------|-------------|------------------|-----------|-------------|---------|----------------|
-| RNF-06 | Cifrado at-rest (LocalDB) + canal cifrado a BD | Confidencialidad | TDE habilitado o cifrado de archivo; conexión TLS o canal local seguro | `[CRÍTICO]` | IC (config BD + string de conexión) | U1, U2 | SECURITY-01 |
+| RNF-06 | Cifrado at-rest (MonitorPedidosDb) + canal cifrado a BD | Confidencialidad | TDE habilitado o cifrado de archivo; conexión TLS o canal local seguro | `[CRÍTICO]` | IC (config BD + string de conexión) | U1, U2 | SECURITY-01 |
 | RNF-07 | HTTPS cuando se sirve por red interna | Confidencialidad | `dotnet dev-certs https` instalado y confiado en cada equipo accedente | `[Alto]` | Test manual desde segundo equipo | U1 | SECURITY-01 (parcial) |
 | RNF-08 | Logging estructurado sin PII | No-repudio + Privacidad | **0 entradas** con contraseñas, tokens o PII; campos obligatorios: `timestamp`, `request_id`, `log_level`, `mensaje` | `[CRÍTICO]` | CR + auditoría de logs generados | U1, U3, U4 | SECURITY-03, SECURITY-14 |
 | RNF-09 | HTTP security headers emitidos | Integridad de transporte | 4 headers presentes: `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`; `HSTS` solo en HTTPS | `[CRÍTICO]` | E2E headers check (curl / browser DevTools) | U1 | SECURITY-04 |

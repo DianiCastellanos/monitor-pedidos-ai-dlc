@@ -1,4 +1,4 @@
-# Functional Design Plan — U1 Foundation & Cross-Cutting
+﻿# Functional Design Plan — U1 Foundation & Cross-Cutting
 
 **Stage:** Construction → Functional Design
 **Unidad:** U1 — Foundation & Cross-Cutting
@@ -57,7 +57,7 @@ Antes de las preguntas, este es el estado confirmado desde Inception:
 | Logging: sin contraseñas, tokens ni PII | RNF-08 |
 | 4 headers HTTP de seguridad obligatorios | RNF-09 |
 | Exception handling fail-closed (errores genéricos al cliente) | RNF-15 |
-| Stack: ASP.NET Core Identity + SQL Server LocalDB | C-03 |
+| Stack: ASP.NET Core Identity + SQL Server MonitorPedidosDb (172.16.0.41) | C-03 |
 
 ---
 

@@ -1,4 +1,4 @@
-# Build Instructions — MonitorPedidos
+﻿# Build Instructions — MonitorPedidos
 
 **Fecha**: 2026-05-24
 **Proyecto**: MonitorPedidos — Manufacturas Eliot
@@ -15,7 +15,7 @@ Antes de clonar o construir el proyecto, verificar que el entorno tenga instalad
 | Componente | Versión mínima | Verificación |
 |---|---|---|
 | .NET SDK | 8.0.x | `dotnet --version` |
-| SQL Server LocalDB | 2019 o superior | `sqllocaldb info` |
+| SQL Server MonitorPedidosDb (172.16.0.41) | 2019 o superior | `sqllocaldb info` |
 | Visual Studio 2022 o VS Code | Última versión estable | — |
 | Git | 2.x | `git --version` |
 | Entity Framework CLI | 8.x | `dotnet ef --version` |
@@ -25,10 +25,10 @@ Antes de clonar o construir el proyecto, verificar que el entorno tenga instalad
 dotnet tool install --global dotnet-ef
 ```
 
-**Verificar LocalDB**:
+**Verificar MonitorPedidosDb**:
 ```bash
 sqllocaldb info
-sqllocaldb start MSSQLLocalDB
+sqllocaldb start MSSQLMonitorPedidosDb
 ```
 
 **Credenciales requeridas (obtenidas del equipo de integración)**:
@@ -92,7 +92,7 @@ dotnet user-secrets set "Multivende:Token" "<token-multivende>" --project Monito
 dotnet user-secrets set "Multivende:ApiKey" "<api-key>" --project MonitorPedidos.Web
 
 # Base de datos
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=(localdb)\\MSSQLLocalDB;Database=MonitorPedidosDb;Trusted_Connection=True;MultipleActiveResultSets=true" --project MonitorPedidos.Web
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=(localdb)\\MSSQLMonitorPedidosDb;Database=MonitorPedidosDb;Trusted_Connection=True;MultipleActiveResultSets=true" --project MonitorPedidos.Web
 
 # Credenciales de administrador inicial
 dotnet user-secrets set "SeedAdmin:Email" "admin@eliot.local" --project MonitorPedidos.Web
@@ -145,9 +145,9 @@ dotnet ef database update AddSimulationSchema --project MonitorPedidos.Web
 dotnet ef migrations list --project MonitorPedidos.Web
 ```
 
-**Verificar que la base de datos se creó en LocalDB**:
+**Verificar que la base de datos se creó en MonitorPedidosDb**:
 ```bash
-sqllocaldb info MSSQLLocalDB
+sqllocaldb info MSSQLMonitorPedidosDb
 ```
 
 > La migration `AddBrandSnapshots` incluye datos seed para las 4 reglas de monitoreo inicial (Patprimo, SevenSeven, Atmos, Ostu). Si la seed falla, verificar que las tablas `rules` y `rule_conditions` existen antes de aplicar U6.

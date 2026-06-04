@@ -1,4 +1,4 @@
-# AI-DLC Audit Log
+﻿# AI-DLC Audit Log
 
 Complete, chronological record of all user inputs and AI responses for the MonitorPedidos AI project.
 
@@ -56,7 +56,7 @@ Complete, chronological record of all user inputs and AI responses for the Monit
 | 9 | Failbook | Documento externo (Markdown) en `aidlc-docs/` |
 | 10 | Transición desde manual | Operación en paralelo 2 semanas post-demo |
 | 11 | Concurrencia | Hasta 5 usuarios concurrentes |
-| 12 | Datos simulados | Tabla `simulated_orders` en LocalDB + job .NET (inserciones 5–10 min con prob. de falla configurable) |
+| 12 | Datos simulados | Tabla `simulated_orders` en MonitorPedidosDb + job .NET (inserciones 5–10 min con prob. de falla configurable) |
 | 13 | TBDs activos | Diferidos a Sprint 1 (no bloquean Inception) |
 
 ---
@@ -335,7 +335,7 @@ Actualizados: `unit-of-work-plan.md` (checkboxes 2.1–2.10 [x]), `aidlc-state.m
 - aidlc-state.md y audit.md actualizados continuamente.
 
 ### Decisiones congeladas para Construction
-- Stack: .NET 8 + ASP.NET Core + SQL Server LocalDB + Blazor Server + SignalR + ASP.NET Core Identity.
+- Stack: .NET 8 + ASP.NET Core + SQL Server MonitorPedidosDb (172.16.0.41) + Blazor Server + SignalR + ASP.NET Core Identity.
 - Arquitectura: monolito modular + Vertical Slice Architecture.
 - Despliegue MVP: localhost o red interna del equipo, **sin exposición a internet**.
 - Roles: Operador + Técnico (2 cuentas pre-creadas).
@@ -361,7 +361,7 @@ Actualizados: `unit-of-work-plan.md` (checkboxes 2.1–2.10 [x]), `aidlc-state.m
 **User Input**: "Genera el C4 Model nivel 1 y 2 de tu producto en Mermaid"
 **AI Response**: Generado artefacto complementario `aidlc-docs/inception/application-design/c4-model.md` con:
 - **Nivel 1 — System Context** en Mermaid (`C4Context`): 4 personas (Operador, Técnico, Sponsor, IT/Seguridad), MonitorPedidos AI como caja negra, 4 sistemas externos (Salesforce, Multivende, Orquestador de Jobs, BD Interna de Pedidos). Relaciones con anotación de protocolos y restricciones (read-only, retry policy, cifrado).
-- **Nivel 2 — Container Diagram** en Mermaid (`C4Container`): 4 containers dentro del boundary del sistema (Navegador, MonitorPedidos.Web, BD MonitorPedidos, Logs estructurados). Tecnologías concretas (.NET 8, Blazor Server, SignalR, SQL Server LocalDB, Serilog). Despliegue interno explicado (localhost o red interna, sin internet).
+- **Nivel 2 — Container Diagram** en Mermaid (`C4Container`): 4 containers dentro del boundary del sistema (Navegador, MonitorPedidos.Web, BD MonitorPedidos, Logs estructurados). Tecnologías concretas (.NET 8, Blazor Server, SignalR, SQL Server MonitorPedidosDb (172.16.0.41), Serilog). Despliegue interno explicado (localhost o red interna, sin internet).
 - **Tabla de trazabilidad** entre elementos C4 y artefactos existentes de Application Design (Niveles 3 y 4 ya cubiertos por components.md, component-dependency.md, component-methods.md).
 - **Notas sobre cómo visualizar los diagramas** (VS Code extension, mermaid.live, GitHub native).
 
@@ -522,7 +522,7 @@ Cambios en `c4-model.md`:
 ## Infrastructure Design — U1 Foundation & Cross-Cutting — Plan generado
 **Timestamp**: 2026-05-23T15:31:00Z
 **User Input**: (ninguno — ejecución automática del stage)
-**AI Response**: Generado plan `u1-foundation-cross-cutting-infrastructure-design-plan.md`. Decisiones ya tomadas documentadas (LocalDB, Kestrel, Serilog, localhost/red interna). 3 preguntas generadas: (1) Data Protection key ring persistence, (2) HTTPS dev-certs vs HTTP plano, (3) migration strategy manual vs auto. Pendiente: respuestas del owner.
+**AI Response**: Generado plan `u1-foundation-cross-cutting-infrastructure-design-plan.md`. Decisiones ya tomadas documentadas (MonitorPedidosDb, Kestrel, Serilog, localhost/red interna). 3 preguntas generadas: (1) Data Protection key ring persistence, (2) HTTPS dev-certs vs HTTP plano, (3) migration strategy manual vs auto. Pendiente: respuestas del owner.
 **Context**: Construction Phase — U1 Infrastructure Design — pasos 1-3 del plan completados.
 
 ---
@@ -539,8 +539,8 @@ Cambios en `c4-model.md`:
 **Timestamp**: 2026-05-23T15:50:00Z
 **User Input**: (ninguno — ejecución automática del plan aprobado)
 **AI Response**: Generados 2 artefactos Infrastructure Design:
-- **`infrastructure-design.md`** (v1.0) — Mapeo de 5 componentes lógicos a infraestructura: AppDbContext→LocalDB, Data Protection→keys/ file system, HTTPS→dev-certs, Serilog→logs/ file sink, Kestrel→dotnet run. Incluye registro Program.cs para Data Protection, configuración appsettings.Development.json, entradas .gitignore (keys/, logs/).
-- **`deployment-architecture.md`** (v1.0) — Diagrama de despliegue ASCII, prerrequisitos (.NET 8 SDK + LocalDB + dev-certs), setup inicial (5 pasos), operación normal, ciclo de vida de migrations U1→U2→U5, configuración demo en red interna (HTTP en LAN), estructura de directorios en disco, controles de seguridad en despliegue.
+- **`infrastructure-design.md`** (v1.0) — Mapeo de 5 componentes lógicos a infraestructura: AppDbContext→MonitorPedidosDb, Data Protection→keys/ file system, HTTPS→dev-certs, Serilog→logs/ file sink, Kestrel→dotnet run. Incluye registro Program.cs para Data Protection, configuración appsettings.Development.json, entradas .gitignore (keys/, logs/).
+- **`deployment-architecture.md`** (v1.0) — Diagrama de despliegue ASCII, prerrequisitos (.NET 8 SDK + MonitorPedidosDb + dev-certs), setup inicial (5 pasos), operación normal, ciclo de vida de migrations U1→U2→U5, configuración demo en red interna (HTTP en LAN), estructura de directorios en disco, controles de seguridad en despliegue.
 - **Plan `u1-foundation-cross-cutting-infrastructure-design-plan.md`**: todos los checkboxes 1-10 marcados [x]. Respuestas registradas.
 - **`aidlc-state.md`**: Infrastructure Design marcado como completado pendiente aprobación owner.
 **Context**: Construction Phase — U1 Infrastructure Design — pasos 6-9 del plan completados. Pendiente: aprobación owner (paso 10 — mensaje de cierre).
@@ -593,7 +593,7 @@ Cambios en `c4-model.md`:
 ## U2 NFR Requirements — Respuestas y artefactos generados
 **Timestamp**: 2026-05-23T17:20:00Z
 **User Input**: "apruebo tus recomendaciones continuemos"
-**AI Response**: Respuestas P1=A (unique index filtrado), P2=A (AsNoTracking lecturas), P3=A (sin caché), P4=A (LocalDB real). Generados: nfr-requirements.md (4 NFRs propios: NFR-U2-01..04, 5 tests planificados T-U2-01..05, SECURITY compliance) y tech-stack-decisions.md (configuración EF Core, IncidentConfiguration, migration AddIncidentSchema, patrón AsNoTracking).
+**AI Response**: Respuestas P1=A (unique index filtrado), P2=A (AsNoTracking lecturas), P3=A (sin caché), P4=A (MonitorPedidosDb real). Generados: nfr-requirements.md (4 NFRs propios: NFR-U2-01..04, 5 tests planificados T-U2-01..05, SECURITY compliance) y tech-stack-decisions.md (configuración EF Core, IncidentConfiguration, migration AddIncidentSchema, patrón AsNoTracking).
 **Context**: Construction Phase — U2 NFR Requirements — Activity 2 completada.
 
 ---
@@ -609,7 +609,7 @@ Cambios en `c4-model.md`:
 ## U2 NFR Design — Respuestas y artefactos generados
 **Timestamp**: 2026-05-23T17:35:00Z
 **User Input**: "A,A"
-**AI Response**: P1=A (Try-Catch + Re-Query), P2=A (ExecuteDeleteAsync). Generados nfr-design-patterns.md (4 ADRs: ADR-U2-01 idempotencia, ADR-U2-02 AsNoTracking, ADR-U2-03 ExecuteDeleteAsync, ADR-U2-04 tests LocalDB) y logical-components.md (9 componentes + 5 tests).
+**AI Response**: P1=A (Try-Catch + Re-Query), P2=A (ExecuteDeleteAsync). Generados nfr-design-patterns.md (4 ADRs: ADR-U2-01 idempotencia, ADR-U2-02 AsNoTracking, ADR-U2-03 ExecuteDeleteAsync, ADR-U2-04 tests MonitorPedidosDb) y logical-components.md (9 componentes + 5 tests).
 **Context**: Construction Phase — U2 NFR Design — Activity 3 completada.
 
 ---
