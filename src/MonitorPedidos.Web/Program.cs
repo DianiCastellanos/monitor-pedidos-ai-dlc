@@ -24,10 +24,22 @@ using MonitorPedidos.Web.Hubs;
 using MonitorPedidos.Domain.Simulation;
 using MonitorPedidos.Infrastructure.Simulation;
 
-// Load .env for local development (overrides appsettings.json values via env vars)
-if (File.Exists(".env"))
+// Busca .env desde el directorio actual hacia arriba (raíz del repo)
+static string? FindEnvFile()
 {
-    foreach (var line in File.ReadAllLines(".env"))
+    var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
+    for (int i = 0; i < 5 && dir is not null; i++, dir = dir.Parent)
+    {
+        var path = Path.Combine(dir.FullName, ".env");
+        if (File.Exists(path)) return path;
+    }
+    return null;
+}
+
+var envFile = FindEnvFile();
+if (envFile is not null)
+{
+    foreach (var line in File.ReadAllLines(envFile))
     {
         var trimmed = line.Trim();
         if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#')) continue;

@@ -11,9 +11,29 @@ window.downloadBlob = function (filename, mimeType, content) {
     URL.revokeObjectURL(url);
 };
 
-// AlertsHub real-time connection (Blazor Server components use C# events via AlertBroadcaster).
-// This hub connection is for non-Blazor consumers (e.g. external dashboards).
-// Requires @microsoft/signalr placed at wwwroot/js/lib/signalr.min.js.
+// ── Tab title alert ──────────────────────────────────────────────────────────
+let _titleBlinkInterval = null;
+let _originalTitle      = '';
+
+window.startTitleAlert = function () {
+    if (_titleBlinkInterval) return;           // ya está parpadeando
+    _originalTitle = document.title;
+    let on = true;
+    _titleBlinkInterval = setInterval(function () {
+        document.title = on ? '⚠ ALERTA — MonitorPedidos' : _originalTitle;
+        on = !on;
+    }, 900);
+};
+
+window.stopTitleAlert = function () {
+    if (_titleBlinkInterval) {
+        clearInterval(_titleBlinkInterval);
+        _titleBlinkInterval = null;
+    }
+    if (_originalTitle) document.title = _originalTitle;
+};
+
+// ── AlertsHub SignalR (dispara startTitleAlert en cualquier página) ──────────
 (function () {
     if (typeof signalR === 'undefined') return;
 
@@ -24,6 +44,7 @@ window.downloadBlob = function (filename, mimeType, content) {
 
     connection.on('ReceiveAlert', function (alert) {
         console.debug('[MonitorPedidos] Alert received via hub:', alert);
+        window.startTitleAlert();
     });
 
     connection.start().catch(function (err) {

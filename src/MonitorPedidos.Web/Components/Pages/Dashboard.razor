@@ -10,6 +10,7 @@
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<Dashboard> _logger
 @inject IConfiguration _config
+@inject IJSRuntime JS
 
 <PageTitle>Dashboard — MonitorPedidos</PageTitle>
 
@@ -419,11 +420,15 @@ else
         {
             await RefreshIncidentsAsync();
             await InvokeAsync(StateHasChanged);
+            await JS.InvokeVoidAsync("startTitleAlert");
         };
         _closeHandler = async _ =>
         {
             await RefreshIncidentsAsync();
             await InvokeAsync(StateHasChanged);
+            // Detener parpadeo si ya no quedan incidentes críticos
+            if (!_openIncidents.Any(i => i.Severity == Severity.Critical))
+                await JS.InvokeVoidAsync("stopTitleAlert");
         };
 
         Broadcaster.OnAlert          += _alertHandler;

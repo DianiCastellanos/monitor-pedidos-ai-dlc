@@ -12,8 +12,12 @@
             var total = _snapshots.Any()
                 ? _snapshots.Sum(s => s.PendingCountCurrent)
                 : _liveCounts!.Values.Sum();
-            <span style="font-size:0.85rem; font-weight:500; color:#9ca3af; margin-left:0.5rem;">
-                @total pendientes totales
+            var totalColor = total > 200 ? "#ef4444" : total > 80 ? "#eab308" : "#22c55e";
+            <span style="font-size:1.1rem; font-weight:700; color:@totalColor; margin-left:0.6rem;">
+                @total
+            </span>
+            <span style="font-size:0.82rem; font-weight:400; color:#9ca3af; margin-left:0.25rem;">
+                pendientes totales
             </span>
         }
     </h4>
@@ -65,9 +69,9 @@
                     <div style="color:#9ca3af; font-size:0.85rem; margin-top:0.25rem;">
                         pendientes por descargar
                     </div>
-                    <div style="color:#6b7280; font-size:0.78rem; margin-top:0.1rem;">@prevLabel</div>
-                    <div style="color:#6b7280; font-size:0.75rem; margin-top:0.3rem;">
-                        @DateTime.SpecifyKind(s.CheckedAt, DateTimeKind.Utc).ToLocalTime().ToString("HH:mm")
+                    <div style="color:#9ca3af; font-size:0.78rem; margin-top:0.1rem;">@prevLabel</div>
+                    <div style="color:#9ca3af; font-size:0.75rem; margin-top:0.25rem; letter-spacing:0.03em;">
+                        @DateTime.SpecifyKind(s.CheckedAt, DateTimeKind.Utc).ToLocalTime().ToString("HH:mm:ss")
                     </div>
                 </div>
             }
@@ -105,7 +109,7 @@
         SnapshotStatus.Green  => "#22c55e",
         SnapshotStatus.Yellow => "#eab308",
         SnapshotStatus.Red    => "#ef4444",
-        _                     => "#6b7280"
+        _                     => "#e0e0e0"   // NoData → blanco visible
     };
 
     private static string TrendArrow(BrandSnapshot s)

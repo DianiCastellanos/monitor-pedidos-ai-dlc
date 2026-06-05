@@ -1,4 +1,7 @@
+using System.Text.Json;
 using MonitorPedidos.Domain.Monitoring;
+using MonitorPedidos.Domain.Rules;
+using MonitorPedidos.Domain.Shared;
 using MonitorPedidos.Web.Features.ApiChecks;
 using MonitorPedidos.Web.Features.Monitoring;
 using MonitorPedidos.Web.Services;
@@ -40,21 +43,47 @@ public sealed class MonitoringSchedulerService : BackgroundService
             RunBrandTimerLoopAsync(stoppingToken));
     }
 
-    // Loop dinámico: re-lee BrandMonitorPollIntervalMinutes en cada iteración.
+    // Loop dinámico: lee el intervalo desde la regla BrandMonitor en BD.
+    // Si la regla no existe o no tiene pollIntervalMinutes, usa appsettings como fallback.
     private async Task RunBrandTimerLoopAsync(CancellationToken stoppingToken)
     {
-        // Correr inmediatamente al arrancar — sin esperar el primer tick
         await ExecuteCheckersAsync(IsBrandMonitorChecker, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var brandMin = _config.GetValue("Monitoring:BrandMonitorPollIntervalMinutes", 3.0);
+            var brandMin = await GetBrandPollIntervalMinutesAsync();
+            _logger.LogDebug("[BrandTimer] Próxima consulta a Salesforce en {Min} min", brandMin);
 
             try { await Task.Delay(TimeSpan.FromMinutes(brandMin), stoppingToken); }
             catch (OperationCanceledException) { break; }
 
             await ExecuteCheckersAsync(IsBrandMonitorChecker, stoppingToken);
         }
+    }
+
+    // Lee pollIntervalMinutes desde la regla activa de BrandMonitor en BD.
+    // Fallback: appsettings Monitoring:BrandMonitorPollIntervalMinutes (default 3).
+    private async Task<double> GetBrandPollIntervalMinutesAsync()
+    {
+        var fallback = _config.GetValue("Monitoring:BrandMonitorPollIntervalMinutes", 3.0);
+        try
+        {
+            using var scope  = _scopeFactory.CreateScope();
+            var ruleRepo     = scope.ServiceProvider.GetRequiredService<IRuleRepository>();
+            var rules        = await ruleRepo.GetActiveByModuleAsync(ModuleId.BrandMonitor);
+            if (rules.Count == 0) return fallback;
+
+            using var doc = JsonDocument.Parse(rules[0].ConditionJson);
+            if (doc.RootElement.TryGetProperty("pollIntervalMinutes", out var prop)
+                && prop.TryGetDouble(out var minutes)
+                && minutes >= 1)
+                return minutes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("[BrandTimer] No se pudo leer intervalo desde regla: {Msg}", ex.Message);
+        }
+        return fallback;
     }
 
     private async Task RunTimerLoopAsync(
