@@ -1,0 +1,14 @@
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/.git
+**/.env
+**/.env.*
+**/keys/
+**/logs/
+**/TestResults/
+tests/
+aidlc-docs/
+deploy.env
+*.user

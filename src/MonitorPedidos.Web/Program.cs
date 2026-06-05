@@ -202,6 +202,13 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapHub<AlertsHub>("/hubs/alerts");
 
+// Aplicar migraciones automáticamente al arrancar (útil en contenedor Docker)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 app.Run();
 
 // Requerido para WebApplicationFactory en tests de integración

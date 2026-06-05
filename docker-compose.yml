@@ -1,0 +1,42 @@
+services:
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ecommonitor-db
+    restart: unless-stopped
+    environment:
+      SA_PASSWORD: "${DB_PASSWORD}"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${DB_PASSWORD}", "-C", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  app:
+    build: .
+    image: ecommonitor-app:latest
+    container_name: ecommonitor-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    env_file:
+      - deploy.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DB_HOST: sqlserver
+      DB_USER: sa
+      ConnectionStrings__DefaultConnection: "Server=tcp:sqlserver,1433;Database=EcomMonitorDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;Encrypt=True;"
+      ConnectionStrings__ProductionDb: "Server=tcp:sqlserver,1433;Database=EcomMonitorDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;Encrypt=True;"
+
+volumes:
+  sqldata:
