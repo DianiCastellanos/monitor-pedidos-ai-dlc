@@ -54,9 +54,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Serilog
 builder.AddSerilogLogging();
 
-// EF Core — SQL Server (Docker)
+// EF Core — proveedor controlado por DB_PROVIDER (sqlserver | supabase)
+var dbProvider = Environment.GetEnvironmentVariable("DB_PROVIDER") ?? "sqlserver";
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (dbProvider.Equals("supabase", StringComparison.OrdinalIgnoreCase))
+        options.UseNpgsql(builder.Configuration.GetConnectionString("SupabaseConnection"));
+    else
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+builder.Services.AddSingleton(_ => dbProvider); // expone el provider activo para logging
 
 // Data Protection — persiste claves entre reinicios
 builder.Services.AddDataProtection()
@@ -214,11 +221,12 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapHub<AlertsHub>("/hubs/alerts");
 
-// Aplicar migraciones automáticamente al arrancar (útil en contenedor Docker)
+// Migraciones automáticas — solo SQL Server (Supabase ya tiene el esquema aplicado via MCP)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    if (!dbProvider.Equals("supabase", StringComparison.OrdinalIgnoreCase))
+        db.Database.Migrate();
 }
 
 app.Run();
