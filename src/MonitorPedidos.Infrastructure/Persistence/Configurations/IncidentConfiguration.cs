@@ -79,10 +79,6 @@ public sealed class IncidentConfiguration : IEntityTypeConfiguration<Incident>
         entity.HasIndex(i => new { i.Module, i.ClosedAt })
             .HasDatabaseName("IX_incidents_Module_ClosedAt");
 
-        // Índice único filtrado: garantiza máximo 1 incidente abierto por módulo (BR-INC-01)
-        entity.HasIndex(i => i.Module)
-            .HasFilter("[ClosedAt] IS NULL")
-            .IsUnique()
-            .HasDatabaseName("IX_incidents_Module_Open");
+        // Índice filtrado aplicado en AppDbContext.OnModelCreating (sintaxis varía por proveedor)
     }
 }

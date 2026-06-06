@@ -133,10 +133,13 @@ builder.Services.AddHostedService<MonitoringSchedulerService>();
 builder.Services.Configure<SimulationOptions>(
     builder.Configuration.GetSection(SimulationOptions.Section));
 
-// M2 — IOrderSource: production (read-only) or simulated fallback
-var prodConn = builder.Configuration.GetConnectionString("ProductionDb");
-if (!string.IsNullOrEmpty(prodConn))
-    builder.Services.AddScoped<IOrderSource>(_ => new ProductionOrderRepository(prodConn));
+// M2 — IOrderSource: en SQL Server lee oc_encabezado (producción); en Supabase
+// lee simulated_orders desde la misma BD (oc_encabezado no existe en Supabase).
+var prodConn   = builder.Configuration.GetConnectionString("ProductionDb");
+var useProdSql = dbProvider.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+                 && !string.IsNullOrEmpty(prodConn);
+if (useProdSql)
+    builder.Services.AddScoped<IOrderSource>(_ => new ProductionOrderRepository(prodConn!));
 else
     builder.Services.AddScoped<IOrderSource, SimulatedOrderRepository>();
 

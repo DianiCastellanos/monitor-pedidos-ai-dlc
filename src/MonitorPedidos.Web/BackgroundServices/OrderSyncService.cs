@@ -22,6 +22,15 @@ public sealed class OrderSyncService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Solo aplica en SQL Server: sincroniza entre dos BDs SQL Server (vtainternet_qa → MonitorPedidosDb).
+        // En Supabase no hay oc_encabezado, así que el sync se desactiva.
+        var dbProvider = Environment.GetEnvironmentVariable("DB_PROVIDER") ?? "sqlserver";
+        if (dbProvider.Equals("supabase", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("OrderSyncService desactivado — DB_PROVIDER=supabase (sin oc_encabezado SQL Server)");
+            return;
+        }
+
         _logger.LogInformation("OrderSyncService iniciado — sincroniza oc_encabezado cada {Min} min", Interval.TotalMinutes);
 
         // Primera sincronización al arrancar

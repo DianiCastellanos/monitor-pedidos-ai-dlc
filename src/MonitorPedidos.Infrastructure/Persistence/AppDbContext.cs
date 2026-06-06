@@ -27,6 +27,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.ApplyConfiguration(new SimulatedOrderConfiguration());
         modelBuilder.ApplyConfiguration(new SimulatedJobStatusConfiguration());
 
+        // Índice único filtrado — sintaxis diferente por proveedor (BR-INC-01)
+        var isNpgsql = Database.ProviderName?.Contains("Npgsql") == true;
+        var filterExpr = isNpgsql ? "\"ClosedAt\" IS NULL" : "[ClosedAt] IS NULL";
+        modelBuilder.Entity<Incident>()
+            .HasIndex(i => i.Module)
+            .HasFilter(filterExpr)
+            .IsUnique()
+            .HasDatabaseName("IX_incidents_Module_Open");
+
         modelBuilder.Entity<Rule>().HasData(new
         {
             Id            = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
