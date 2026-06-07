@@ -131,15 +131,29 @@ builder.Services.AddHostedService<MonitoringSchedulerService>();
 builder.Services.Configure<SimulationOptions>(
     builder.Configuration.GetSection(SimulationOptions.Section));
 
-// M2 — IOrderSource: se activa ProductionOrderRepository cuando ProductionDb está configurado,
-// independientemente de DB_PROVIDER. Esto permite modo híbrido (supabase + SQL Server para M2).
-// Sin ProductionDb → SimulatedOrderRepository (Supabase simulated_orders, modo puro cloud).
-var prodConn   = builder.Configuration.GetConnectionString("ProductionDb");
-var useProdSql = !string.IsNullOrWhiteSpace(prodConn);
-if (useProdSql)
-    builder.Services.AddScoped<IOrderSource>(_ => new ProductionOrderRepository(prodConn!));
+// M2 — IOrderSource: la fuente de pedidos depende exclusivamente de DB_PROVIDER.
+//   supabase  → SupabaseOrderRepository (lee oc_encabezado en Supabase). NUNCA consulta SQL Server.
+//   sqlserver → ProductionOrderRepository (oc_encabezado en SQL Server) si hay ProductionDb;
+//               si no, SimulatedOrderRepository como fallback (comportamiento previo intacto).
+// La tabla de simulación U7 (simulated_orders) queda exclusiva para simulación, no para M2.
+if (dbProvider.Equals("supabase", StringComparison.OrdinalIgnoreCase))
+{
+    var supabaseConn = builder.Configuration.GetConnectionString("SupabaseConnection");
+    builder.Services.AddScoped<IOrderSource>(_ => new SupabaseOrderRepository(supabaseConn!));
+}
 else
-    builder.Services.AddScoped<IOrderSource, SimulatedOrderRepository>();
+{
+    var prodConn = builder.Configuration.GetConnectionString("ProductionDb");
+    if (!string.IsNullOrWhiteSpace(prodConn))
+        builder.Services.AddScoped<IOrderSource>(_ => new ProductionOrderRepository(prodConn!));
+    else
+        builder.Services.AddScoped<IOrderSource, SimulatedOrderRepository>();
+}
+
+// Seeder de carga inicial única para oc_encabezado (se auto-desactiva fuera de modo supabase)
+builder.Services.AddHostedService<OrderSeederService>();
+// Simulación opcional M2: inserta pedidos recientes periódicamente (solo si OrderFeeder:Enabled=true)
+builder.Services.AddHostedService<OrderFeederService>();
 
 builder.Services.AddScoped<ISimulatedOrderRepository,     SimulatedOrderRepository>();
 // JobsMonitor — real desde Task Scheduler, con fallback a simulación

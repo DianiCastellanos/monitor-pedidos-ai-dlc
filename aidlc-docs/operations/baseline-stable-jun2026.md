@@ -72,6 +72,39 @@ y el auto-refresh estaba inerte — aunque el WebSocket sí conectaba (`/_blazor
 
 ---
 
+### E. CAMBIOS POST-BASELINE (sesión Jun 7 2026) — Parte del estado actual
+
+#### E.1 — M2: Independencia total de SQL Server (DB_PROVIDER=supabase)
+
+| # | Archivo | Cambio |
+|---|---------|--------|
+| CA-06 | `Program.cs` | Routing `IOrderSource` por `DB_PROVIDER`: `supabase` → `SupabaseOrderRepository`; `sqlserver` → `ProductionOrderRepository` (o `SimulatedOrderRepository` como fallback). Nunca toca SQL Server en modo supabase. |
+| CA-07 | `SupabaseOrderRepository.cs` *(nuevo)* | Implementación Dapper+Npgsql de `IOrderSource` que lee `oc_encabezado` en Supabase. M2 lee pedidos de Supabase cuando `DB_PROVIDER=supabase`. |
+| CA-08 | `OrderSeederService.cs` *(nuevo)* | Hosted service one-shot: siembra `oc_encabezado` solo si está vacía (condicionado a `DB_PROVIDER=supabase` y `OrderSeed:Enabled=true`). Warmup 6s. Filas marcadas `seller='SEED'`. |
+| CA-09 | `OrderFeederService.cs` *(nuevo)* | Hosted service opt-in para simulación M2: inserta pedidos periódicos en `oc_encabezado` modo **Burst** — lote + silencio de `BurstIntervalMinutes`. Si `BurstIntervalMinutes > WindowMinutes` de la regla M2, el monitor transita OK→Critical→OK naturalmente. Filas marcadas `seller='SIM'`. |
+| CA-10 | `appsettings.json` / `appsettings.Development.json` | Nuevas secciones `OrderSeed` y `OrderFeeder`. Dev: `OrderFeeder.Enabled=true`, `BurstIntervalMinutes=15`. Prod: `Enabled=false`. |
+
+**Tabla Supabase creada:** `public.oc_encabezado` (id_aut_order, id_order, seller, channel_name, creation_date, fecha_generacion, estado_factura, estado_actual_orden) + índice en `(fecha_generacion, channel_name)`.
+
+**Separación de responsabilidades:**
+
+| Servicio | Tabla | Propósito |
+|----------|-------|-----------|
+| `OrdersSimulatorService` | `simulated_orders` | Simulación U7 — no toca M2 |
+| `OrderSeederService` | `oc_encabezado` | Carga inicial única (solo si vacía) |
+| `OrderFeederService` | `oc_encabezado` | Simulación periódica M2 opt-in |
+
+#### E.2 — UI: Ajustes de texto Brand Monitor
+
+| # | Archivo | Texto anterior | Texto actual |
+|---|---------|---------------|--------------|
+| TX-01 | `BrandMonitorTable.razor` L20 | `pendientes totales` | `pedidos por descargar` |
+| TX-02 | `Dashboard.razor` L192 | `— pendientes en Salesforce por marca` | `— Pedidos pendientes de descarga en Salesforce por marca` |
+
+*Solo cambios de texto. Sin modificaciones de lógica, estilos, servicios ni estructura.*
+
+---
+
 ### D. PENDIENTE DE DECISIÓN — No incluir en baseline todavía
 
 | # | Archivo | Item | Motivo |

@@ -189,7 +189,7 @@ else
 
 <div class="d-flex align-items-center mb-2" data-testid="brand-monitor-header">
     <h5 class="mb-0">Pedidos por descargar</h5>
-    <span class="text-muted small ms-2">— pendientes en Salesforce por marca</span>
+    <span class="text-muted small ms-2">— Pedidos pendientes de descarga en Salesforce por marca</span>
     <button class="btn btn-outline-secondary btn-sm ms-auto" data-testid="btn-brand-refresh" @onclick="() => RefreshBrandAsync(true)" disabled="@(_brandLoading || _brandRefreshing)">
         @if (_brandRefreshing) { <span class="spinner-border spinner-border-sm me-1"></span><span>Consultando Salesforce...</span> }
         else { <span>&#8635; Consultar Salesforce</span> }
