@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MonitorPedidos.Domain.Incidents;
 using MonitorPedidos.Domain.Monitoring;
@@ -220,6 +221,13 @@ builder.Services.AddProblemDetails();
 var app = builder.Build();
 
 // Pipeline de seguridad (orden crítico — nfr-design-patterns.md §1)
+// ForwardedHeaders PRIMERO: Render termina TLS en el proxy y reenvía HTTP al container.
+// Sin esto el antiforgery falla con 400 porque ve HTTP en vez de HTTPS.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
