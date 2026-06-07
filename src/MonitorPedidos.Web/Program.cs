@@ -63,8 +63,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     else
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
-builder.Services.AddSingleton(_ => dbProvider); // expone el provider activo para logging
-
 // Data Protection — persiste claves entre reinicios
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "keys")))
@@ -79,8 +77,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan    = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly   = true;
-        options.Cookie.SameSite   = SameSiteMode.Strict;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite     = builder.Environment.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.None : CookieSecurePolicy.SameAsRequest;
     });
 
 // Authorization — deny-by-default (RF-26, BR-AUTHZ-01)
@@ -101,7 +99,7 @@ builder.Services.AddRazorComponents()
 // ── U6: SignalR + Real-Time ───────────────────────────────────────────────
 builder.Services.AddSignalR(opts =>
 {
-    if (builder.Environment.IsDevelopment()) opts.EnableDetailedErrors = true;
+    opts.EnableDetailedErrors = true;
 });
 builder.Services.AddSingleton<AlertBroadcaster>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
@@ -133,11 +131,11 @@ builder.Services.AddHostedService<MonitoringSchedulerService>();
 builder.Services.Configure<SimulationOptions>(
     builder.Configuration.GetSection(SimulationOptions.Section));
 
-// M2 — IOrderSource: en SQL Server lee oc_encabezado (producción); en Supabase
-// lee simulated_orders desde la misma BD (oc_encabezado no existe en Supabase).
+// M2 — IOrderSource: se activa ProductionOrderRepository cuando ProductionDb está configurado,
+// independientemente de DB_PROVIDER. Esto permite modo híbrido (supabase + SQL Server para M2).
+// Sin ProductionDb → SimulatedOrderRepository (Supabase simulated_orders, modo puro cloud).
 var prodConn   = builder.Configuration.GetConnectionString("ProductionDb");
-var useProdSql = dbProvider.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-                 && !string.IsNullOrEmpty(prodConn);
+var useProdSql = !string.IsNullOrWhiteSpace(prodConn);
 if (useProdSql)
     builder.Services.AddScoped<IOrderSource>(_ => new ProductionOrderRepository(prodConn!));
 else
