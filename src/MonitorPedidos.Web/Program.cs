@@ -221,12 +221,15 @@ builder.Services.AddProblemDetails();
 var app = builder.Build();
 
 // Pipeline de seguridad (orden crítico — nfr-design-patterns.md §1)
-// ForwardedHeaders PRIMERO: Render termina TLS en el proxy y reenvía HTTP al container.
-// Sin esto el antiforgery falla con 400 porque ve HTTP en vez de HTTPS.
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+// ForwardedHeaders: Render termina TLS en proxy y reenvía HTTP al container.
+// KnownNetworks/KnownProxies vacíos = acepta cualquier proxy (requerido en Render/cloud).
+var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+};
+forwardedOptions.KnownNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
 
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
