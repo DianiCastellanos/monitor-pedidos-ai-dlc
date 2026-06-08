@@ -48,11 +48,11 @@ El contenedor Docker necesita un archivo `.env` con credenciales (como el que us
 
    # Supabase — PostgreSQL cloud (proyecto: uzieandeucdqolerscgw)
    # Pooler IPv4 (requerido en redes sin IPv6)
-   ConnectionStrings__SupabaseConnection=Host=aws-1-us-east-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.uzieandeucdqolerscgw;Password=Abc12345*zaras_123;SSL Mode=Require
+   ConnectionStrings__SupabaseConnection=Host=aws-1-us-east-1.pooler.supabase.com;Port=5432;Database=postgres;Username=<SUPABASE_USER>;Password=<SUPABASE_PASSWORD>;SSL Mode=Require
 
    # Salesforce OCAPI — OAuth2
-   Salesforce__ClientId=31bbdc57-d861-4486-9550-04f7f3f24a1c
-   Salesforce__ClientPassword=Pruebas-P@sh123
+   Salesforce__ClientId=<SALESFORCE_CLIENT_ID>
+   Salesforce__ClientPassword=<SALESFORCE_CLIENT_PASSWORD>
    Salesforce__OAuthTokenUrl=https://account.demandware.com/dwsso/oauth2/access_token
    Salesforce__OAuthGrantType=client_credentials
 
